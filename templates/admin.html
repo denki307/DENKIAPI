@@ -14,23 +14,21 @@
     <h2>🛠️ Owner Dashboard</h2>
     <table>
         <tr>
-            <th>Email</th>
             <th>API Key</th>
             <th>Status</th>
             <th>Plays</th>
             <th>UTR</th>
             <th>Action</th>
         </tr>
-        {% for u in users %}
+        {% for k in keys %}
         <tr>
-            <td>{{ u.email }}</td>
-            <td style="font-family: monospace;">{{ u.api_key }}</td>
-            <td style="color: {% if u.status == 'pending' %}yellow{% elif u.status == 'active' %}#00ffcc{% else %}#aaa{% endif %};">{{ u.status.upper() }}</td>
-            <td>{{ u.play_count }}</td>
-            <td>{{ u.utr_number }}</td>
+            <td style="font-family: monospace;">{{ k.api_key }}</td>
+            <td style="color: {% if k.status == 'pending' %}yellow{% elif k.status == 'active' %}#00ffcc{% else %}#aaa{% endif %};">{{ k.status.upper() }}</td>
+            <td>{{ k.play_count }}</td>
+            <td>{{ k.utr_number }}</td>
             <td>
-                {% if u.status == 'pending' %}
-                    <a href="/approve/{{ u.email }}?pwd={{ pwd }}" class="btn">Approve ✅</a>
+                {% if k.status == 'pending' %}
+                    <a href="/approve/{{ k.api_key }}?pwd={{ pwd }}" class="btn">Approve ✅</a>
                 {% else %}
                     Done
                 {% endif %}
