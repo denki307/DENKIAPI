@@ -6,19 +6,20 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Rajdhani:wght@500;700&display=swap');
         body { background: #050505; color: #fff; font-family: 'Rajdhani', sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
-        h1 { font-family: 'Orbitron', sans-serif; color: #00ffcc; text-shadow: 0 0 15px #00ffcc; font-size: 3rem; margin-bottom: 5px;}
-        p { color: #aaa; margin-bottom: 30px; font-size: 1.2rem; }
-        .login-btn { display: flex; align-items: center; gap: 10px; background: #fff; color: #000; text-decoration: none; padding: 15px 30px; border-radius: 8px; font-weight: bold; font-size: 1.2rem; transition: 0.3s; box-shadow: 0 0 20px rgba(255,255,255,0.2); }
-        .login-btn:hover { transform: scale(1.05); box-shadow: 0 0 30px rgba(255,255,255,0.5); }
-        .login-btn img { width: 24px; }
+        h1 { font-family: 'Orbitron', sans-serif; color: #00ffcc; text-shadow: 0 0 15px #00ffcc; font-size: 3rem; margin-bottom: 5px; text-align: center;}
+        p { color: #aaa; margin-bottom: 30px; font-size: 1.2rem; text-align: center;}
+        
+        .gen-btn { background: #00ffcc; color: #000; padding: 15px 40px; border: none; border-radius: 8px; font-weight: bold; font-size: 1.5rem; cursor: pointer; transition: 0.3s; box-shadow: 0 0 20px rgba(0,255,204,0.3); font-family: 'Orbitron', sans-serif; }
+        .gen-btn:hover { transform: scale(1.05); box-shadow: 0 0 30px rgba(0,255,204,0.6); background: #fff;}
     </style>
 </head>
 <body>
     <h1>⚡ DENKI ENGINE ⚡</h1>
     <p>Advanced Music Bot API Infrastructure</p>
-    <a href="/login" class="login-btn">
-        <img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" alt="Google">
-        Login with Google
-    </a>
+    
+    <form action="/get_key" method="POST">
+        <button type="submit" class="gen-btn">GENERATE FREE KEY</button>
+    </form>
 </body>
 </html>
+
