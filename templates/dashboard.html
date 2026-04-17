@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard | Denki API</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700&display=swap');
+        body { background: #050505; color: #fff; font-family: 'Rajdhani', sans-serif; display: flex; flex-direction: column; align-items: center; padding: 20px; }
+        .header { width: 100%; max-width: 800px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 10px; margin-bottom: 20px; }
+        .header a { color: #ff00ff; text-decoration: none; font-weight: bold; }
+        .container { display: flex; gap: 30px; flex-wrap: wrap; justify-content: center; }
+        .card { background: rgba(255,255,255,0.05); border: 1px solid #00ffcc; border-radius: 15px; padding: 25px; width: 340px; box-shadow: 0 0 15px rgba(0,255,204,0.1); }
+        .card.premium { border-color: #ff00ff; box-shadow: 0 0 15px rgba(255,0,255,0.1); }
+        h2 { margin-top: 0; }
+        
+        /* Key Input & Copy logic */
+        .key-row { display: flex; gap: 10px; margin: 15px 0; }
+        .key-input { flex: 1; padding: 12px; border-radius: 5px; border: 1px solid #444; background: #000; color: #00ffcc; font-family: monospace; outline: none; letter-spacing: 2px; }
+        .copy-btn { padding: 12px; background: #444; color: #fff; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .regen-btn { width: 100%; padding: 10px; background: transparent; border: 1px solid #00ffcc; color: #00ffcc; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        
+        .upgrade-input { width: 100%; padding: 12px; margin: 10px 0; box-sizing: border-box; background: #000; border: 1px solid #444; color: #fff; border-radius: 5px;}
+        .pay-btn { width: 100%; padding: 12px; background: #ff00ff; color: #fff; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; }
+        .status-badge { display: inline-block; padding: 5px 10px; border-radius: 5px; font-size: 0.9rem; font-weight: bold; background: #222; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h2>Welcome, {{ user.name }} ⚡</h2>
+        <a href="/logout">Logout</a>
+    </div>
+
+    <div class="container">
+        <div class="card">
+            <h2 style="color:#00ffcc;">Your License Key</h2>
+            
+            <div style="margin-bottom: 10px;">
+                Status: <span class="status-badge" style="color: {% if user.status == 'active' %}#00ffcc{% elif user.status == 'pending' %}yellow{% else %}#fff{% endif %};">{{ user.status.upper() }}</span>
+            </div>
+            
+            <p style="font-size: 0.9rem; color: #aaa;">Limits: {{ user.play_count }} / {% if user.status == 'active' %}Unlimited{% else %}100{% endif %}</p>
+
+            <div class="key-row">
+                <input type="password" id="api_key" class="key-input" value="{{ user.api_key }}" readonly>
+                <button class="copy-btn" onclick="copyKey()">Copy</button>
+            </div>
+
+            <form action="/regenerate" method="POST">
+                <button type="submit" class="regen-btn" onclick="return confirm('Old key will stop working. Generate new?')">🔄 Regenerate New Key</button>
+            </form>
+        </div>
+
+        <div class="card premium">
+            <h2 style="color:#ff00ff;">Upgrade to Premium</h2>
+            <p style="color:#aaa;">Unlimited API calls for ₹99/mo</p>
+            
+            {% if user.status == 'active' %}
+                <h3 style="color: #00ffcc; text-align: center;">💎 Premium Active</h3>
+                <p style="text-align: center;">Expires: {{ user.expiry_date }}</p>
+            {% elif user.status == 'pending' %}
+                <h3 style="color: yellow; text-align: center;">⏳ Verification Pending</h3>
+                <p style="text-align: center;">UTR: {{ user.utr_number }}</p>
+            {% else %}
+                <div style="text-align: center;">
+                    <img src="{{ qr_url }}" style="background:#fff; padding:5px; border-radius:10px; width:150px; margin-bottom:10px;">
+                </div>
+                <form action="/upgrade" method="POST">
+                    <input type="number" name="utr_number" class="upgrade-input" placeholder="Enter 12-digit UTR Number" required>
+                    <button type="submit" class="pay-btn">Submit Payment</button>
+                </form>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+        function copyKey() {
+            var keyField = document.getElementById("api_key");
+            keyField.type = "text";
+            keyField.select();
+            document.execCommand("copy");
+            keyField.type = "password";
+            
+            var btn = document.querySelector(".copy-btn");
+            btn.innerText = "Copied!";
+            btn.style.background = "#00ffcc";
+            btn.style.color = "#000";
+            setTimeout(() => { btn.innerText = "Copy"; btn.style.background = "#444"; btn.style.color = "#fff"; }, 2000);
+        }
+    </script>
+</body>
+</html>
