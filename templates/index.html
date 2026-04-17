@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Premium Music API</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;700&display=swap');
+        body {
+            background: #0d0e15;
+            color: #fff;
+            font-family: 'Space Grotesk', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            flex-wrap: wrap;
+            gap: 40px;
+            padding: 20px;
+        }
+        .card {
+            background: rgba(20, 22, 35, 0.8);
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 0 20px rgba(0, 255, 204, 0.2);
+            width: 350px;
+            border: 1px solid #00ffcc;
+        }
+        .card-premium { border-color: #ff00ff; box-shadow: 0 0 20px rgba(255, 0, 255, 0.2); }
+        h2 { color: #00ffcc; margin-bottom: 5px; }
+        .card-premium h2 { color: #ff00ff; }
+        input {
+            width: 90%;
+            padding: 12px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border: 1px solid #333;
+            background: #000;
+            color: #fff;
+            outline: none;
+            font-family: monospace;
+            font-size: 1rem;
+        }
+        input:focus { border-color: #00ffcc; }
+        .card-premium input:focus { border-color: #ff00ff; }
+        button {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            font-weight: bold;
+            font-size: 1.1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 15px;
+            transition: 0.3s;
+        }
+        .btn-free { background: #00ffcc; color: #000; }
+        .btn-free:hover { box-shadow: 0 0 15px #00ffcc; }
+        .btn-pay { background: #ff00ff; color: #fff; }
+        .btn-pay:hover { box-shadow: 0 0 15px #ff00ff; }
+        .qr-code { border-radius: 10px; border: 2px solid #fff; padding: 5px; background: #fff; margin: 15px 0; width: 160px; }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <h2>🎵 Get Free Trial</h2>
+        <p style="color:#aaa;">Test with 100 Free Songs!</p>
+        <form action="/get_trial" method="POST">
+            <input type="text" name="user_name" placeholder="Enter Bot / User Name" required>
+            <button type="submit" class="btn-free">Generate Free Key</button>
+        </form>
+    </div>
+
+    <div class="card card-premium">
+        <h2>💎 Upgrade to Premium</h2>
+        <p style="color:#aaa;">1 Month Unlimited - <b>₹99</b></p>
+        
+        <img src="{{ qr_url }}" class="qr-code" alt="Scan to Pay">
+        <p style="font-size: 0.85rem; color: #888;">1. Scan & Pay ₹99 via UPI<br>2. Submit your Trial Key & UTR below</p>
+        
+        <form action="/upgrade" method="POST">
+            <input type="text" name="api_key" placeholder="Enter your Trial Key" required>
+            <input type="number" name="utr_number" placeholder="Enter 12-digit UTR No" required>
+            <button type="submit" class="btn-pay">Submit Payment</button>
+        </form>
+    </div>
+
+</body>
+</html>
+
