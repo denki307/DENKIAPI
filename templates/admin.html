@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Panel</title>
+    <style>
+        body { background: #0d0e15; color: #fff; font-family: sans-serif; padding: 30px; }
+        h1 { color: #00ffcc; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; background: rgba(255,255,255,0.05); }
+        th, td { border: 1px solid #333; padding: 15px; text-align: left; }
+        th { background: #111; color: #ff00ff; }
+        .btn { padding: 8px 15px; background: #00ffcc; color: #000; text-decoration: none; font-weight: bold; border-radius: 5px; }
+        .status-trial { color: #aaa; }
+        .status-pending { color: #ff9a9e; font-weight: bold; }
+        .status-active { color: #00ffcc; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>🛠️ Owner Admin Panel</h1>
+    <table>
+        <tr>
+            <th>User</th>
+            <th>API Key</th>
+            <th>Status</th>
+            <th>Play Count</th>
+            <th>UTR Number</th>
+            <th>Expiry Date</th>
+            <th>Action</th>
+        </tr>
+        {% for key in keys %}
+        <tr>
+            <td>{{ key[1] }}</td>
+            <td style="font-family: monospace;">{{ key[2] }}</td>
+            
+            {% if key[3] == 'pending' %}
+                <td class="status-pending">PENDING</td>
+            {% elif key[3] == 'active' %}
+                <td class="status-active">ACTIVE</td>
+            {% else %}
+                <td class="status-trial">{{ key[3].upper() }}</td>
+            {% endif %}
+
+            <td>{{ key[4] }} / 100</td>
+            <td style="color: yellow;">{{ key[5] }}</td>
+            <td>{{ key[6] }}</td>
+            
+            <td>
+                {% if key[3] == 'pending' %}
+                    <a href="/approve/{{ key[0] }}?pwd={{ pwd }}" class="btn">Approve ✅</a>
+                {% else %}
+                    <span style="color: #666;">Done</span>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>
+
