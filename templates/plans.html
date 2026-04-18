@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Upgrade | Denki API</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style> body { background-color: #09090b; } .glass { background: #18181b; border: 1px solid #27272a; } </style>
+</head>
+<body class="text-zinc-300 h-screen flex overflow-hidden">
+
+    <aside class="bg-zinc-950 w-64 border-r border-zinc-800 flex flex-col hidden md:flex">
+        <div class="p-6 border-b border-zinc-800 flex items-center gap-3">
+            <div class="bg-cyan-500 text-zinc-950 font-black w-10 h-10 rounded flex items-center justify-center text-xl">D</div>
+            <div>
+                <h1 class="text-zinc-100 font-bold">API Platform</h1>
+            </div>
+        </div>
+        <nav class="flex-1 p-4 space-y-2">
+            <a href="/dashboard" class="flex items-center gap-3 px-3 py-2 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/50 rounded-md transition"><i class="fa-solid fa-border-all w-5"></i> Dashboard</a>
+            <a href="/billing" class="flex items-center gap-3 px-3 py-2 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/50 rounded-md transition"><i class="fa-regular fa-credit-card w-5"></i> Billing</a>
+            <a href="/plans" class="flex items-center gap-3 px-3 py-2 bg-zinc-800 text-cyan-400 rounded-md font-medium"><i class="fa-solid fa-bolt w-5"></i> Upgrade</a>
+        </nav>
+    </aside>
+
+    <main class="flex-1 overflow-y-auto p-4 md:p-8">
+        <div class="max-w-5xl mx-auto">
+            
+            <h1 class="text-2xl font-bold text-zinc-100 mb-1">Available Plans</h1>
+            <p class="text-sm text-zinc-500 mb-8">Choose a plan that fits your bot's needs.</p>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                
+                <div class="glass rounded-2xl p-6 flex flex-col">
+                    <h3 class="text-zinc-100 text-xl font-bold">Free</h3>
+                    <p class="text-xs text-zinc-500 mb-4">Personal testing</p>
+                    <div class="flex items-end gap-1 mb-6"><span class="text-4xl font-black text-zinc-400">₹0</span><span class="text-zinc-600 text-sm">/mo</span></div>
+                    <ul class="space-y-3 mb-8 flex-1 text-sm text-zinc-400">
+                        <li><i class="fa-solid fa-check text-zinc-600 mr-2"></i> 150 requests daily</li>
+                        <li><i class="fa-solid fa-check text-zinc-600 mr-2"></i> Rate limited</li>
+                    </ul>
+                    <button class="w-full py-3 rounded-lg bg-zinc-800 text-zinc-500 font-bold cursor-not-allowed">Current Plan</button>
+                </div>
+
+                <div class="bg-zinc-950 border border-cyan-500/50 rounded-2xl p-6 flex flex-col relative shadow-[0_0_30px_rgba(34,211,238,0.1)]">
+                    <div class="absolute -top-3 left-1/2 transform -translate-x-1/2"><span class="bg-cyan-500 text-zinc-950 text-[10px] uppercase font-bold px-3 py-1 rounded-full">Most Popular</span></div>
+                    <h3 class="text-zinc-100 text-xl font-bold mt-2">Basic <i class="fa-solid fa-video text-fuchsia-500 text-sm"></i></h3>
+                    <p class="text-xs text-zinc-500 mb-4">For light usage</p>
+                    <div class="flex items-end gap-2 mb-1">
+                        <span class="text-4xl font-black text-cyan-400">₹59</span><span class="text-zinc-600 line-through">₹99</span>
+                    </div>
+                    <p class="text-[10px] text-fuchsia-500 font-bold mb-6">40% OFF</p>
+                    <ul class="space-y-3 mb-8 flex-1 text-sm text-zinc-300">
+                        <li><i class="fa-solid fa-check text-cyan-500 mr-2"></i> 3,000 requests daily</li>
+                        <li><i class="fa-solid fa-check text-cyan-500 mr-2"></i> Video access included</li>
+                    </ul>
+                    <button class="w-full py-3 rounded-lg bg-cyan-500 text-zinc-950 hover:bg-cyan-400 font-bold transition">Upgrade Now</button>
+                </div>
+
+                <div class="glass rounded-2xl p-6 flex flex-col">
+                    <h3 class="text-zinc-100 text-xl font-bold">Pro <i class="fa-solid fa-video text-fuchsia-500 text-sm"></i></h3>
+                    <p class="text-xs text-zinc-500 mb-4">For growing projects</p>
+                    <div class="flex items-end gap-2 mb-1">
+                        <span class="text-4xl font-black text-zinc-100">₹285</span><span class="text-zinc-600 line-through">₹569</span>
+                    </div>
+                    <p class="text-[10px] text-fuchsia-500 font-bold mb-6">50% OFF</p>
+                    <ul class="space-y-3 mb-8 flex-1 text-sm text-zinc-300">
+                        <li><i class="fa-solid fa-check text-cyan-500 mr-2"></i> 25,000 requests daily</li>
+                        <li><i class="fa-solid fa-check text-cyan-500 mr-2"></i> Video access included</li>
+                    </ul>
+                    <button class="w-full py-3 rounded-lg bg-zinc-100 text-zinc-900 hover:bg-white font-bold transition">Upgrade Now</button>
+                </div>
+
+            </div>
+        </div>
+    </main>
+</body>
+</html>
+
