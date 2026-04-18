@@ -1,87 +1,152 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <title>Dashboard | Denki API</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700&display=swap');
-        body { background: #050505; color: #fff; font-family: 'Rajdhani', sans-serif; display: flex; flex-direction: column; align-items: center; padding: 20px; }
-        .header { width: 100%; max-width: 800px; text-align: center; border-bottom: 1px solid #333; padding-bottom: 10px; margin-bottom: 20px; }
-        .container { display: flex; gap: 30px; flex-wrap: wrap; justify-content: center; }
-        .card { background: rgba(255,255,255,0.05); border: 1px solid #00ffcc; border-radius: 15px; padding: 25px; width: 340px; box-shadow: 0 0 15px rgba(0,255,204,0.1); }
-        .card.premium { border-color: #ff00ff; box-shadow: 0 0 15px rgba(255,0,255,0.1); }
-        h2 { margin-top: 0; }
-        
-        .key-row { display: flex; gap: 10px; margin: 15px 0; }
-        .key-input { flex: 1; padding: 12px; border-radius: 5px; border: 1px solid #444; background: #000; color: #00ffcc; font-family: monospace; outline: none; letter-spacing: 2px; }
-        .copy-btn { padding: 12px; background: #444; color: #fff; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
-        .regen-btn { width: 100%; padding: 10px; background: transparent; border: 1px solid #00ffcc; color: #00ffcc; border-radius: 5px; cursor: pointer; font-weight: bold; }
-        
-        .upgrade-input { width: 100%; padding: 12px; margin: 10px 0; box-sizing: border-box; background: #000; border: 1px solid #444; color: #fff; border-radius: 5px;}
-        .pay-btn { width: 100%; padding: 12px; background: #ff00ff; color: #fff; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; }
-        .status-badge { display: inline-block; padding: 5px 10px; border-radius: 5px; font-size: 0.9rem; font-weight: bold; background: #222; }
-    </style>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style> body { background-color: #09090b; } .glass { background: #18181b; border: 1px solid #27272a; } </style>
 </head>
-<body>
+<body class="text-zinc-300 h-screen flex overflow-hidden">
 
-    <div class="header">
-        <h2 style="color: #00ffcc; font-family: monospace;">⚡ API DASHBOARD</h2>
-    </div>
-
-    <div class="container">
-        <div class="card">
-            <h2 style="color:#00ffcc;">Your License Key</h2>
-            <div style="margin-bottom: 10px;">
-                Status: <span class="status-badge" style="color: {% if key_data.status == 'active' %}#00ffcc{% elif key_data.status == 'pending' %}yellow{% else %}#fff{% endif %};">{{ key_data.status.upper() }}</span>
+    <aside class="bg-zinc-950 w-64 border-r border-zinc-800 flex flex-col hidden md:flex">
+        <div class="p-6 border-b border-zinc-800 flex items-center gap-3">
+            <div class="bg-cyan-500 text-zinc-950 font-black w-10 h-10 rounded flex items-center justify-center text-xl">D</div>
+            <div>
+                <h1 class="text-zinc-100 font-bold">API Platform</h1>
+                <p class="text-xs text-zinc-500">Workspace</p>
             </div>
-            <p style="font-size: 0.9rem; color: #aaa;">Limits: {{ key_data.play_count }} / {% if key_data.status == 'active' %}Unlimited{% else %}100{% endif %}</p>
-
-            <div class="key-row">
-                <input type="password" id="api_key" class="key-input" value="{{ key_data.api_key }}" readonly>
-                <button class="copy-btn" onclick="copyKey()">Copy</button>
-            </div>
-
-            <form action="/regenerate" method="POST">
-                <button type="submit" class="regen-btn" onclick="return confirm('Old key will stop working. Generate new?')">🔄 Regenerate New Key</button>
-            </form>
         </div>
+        <nav class="flex-1 p-4 space-y-2">
+            <a href="/dashboard" class="flex items-center gap-3 px-3 py-2 bg-zinc-800 text-cyan-400 rounded-md font-medium"><i class="fa-solid fa-border-all w-5"></i> Dashboard</a>
+            <a href="/billing" class="flex items-center gap-3 px-3 py-2 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/50 rounded-md transition"><i class="fa-regular fa-credit-card w-5"></i> Billing</a>
+            <a href="/plans" class="flex items-center gap-3 px-3 py-2 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/50 rounded-md transition"><i class="fa-solid fa-bolt w-5"></i> Upgrade</a>
+        </nav>
+        <div class="p-4 border-t border-zinc-800 text-sm flex justify-between items-center hover:bg-zinc-800 transition">
+            <span class="font-medium text-zinc-100"><i class="fa-solid fa-user-ninja mr-2"></i> Denki User</span>
+            <a href="/" class="text-zinc-500 hover:text-fuchsia-500"><i class="fa-solid fa-power-off"></i></a>
+        </div>
+    </aside>
 
-        <div class="card premium">
-            <h2 style="color:#ff00ff;">Upgrade to Premium</h2>
-            <p style="color:#aaa;">Unlimited API calls for ₹99/mo</p>
+    <main class="flex-1 overflow-y-auto p-4 md:p-8">
+        <div class="max-w-3xl mx-auto space-y-6">
             
-            {% if key_data.status == 'active' %}
-                <h3 style="color: #00ffcc; text-align: center;">💎 Premium Active</h3>
-                <p style="text-align: center;">Expires: {{ key_data.expiry_date }}</p>
-            {% elif key_data.status == 'pending' %}
-                <h3 style="color: yellow; text-align: center;">⏳ Verification Pending</h3>
-                <p style="text-align: center;">UTR: {{ key_data.utr_number }}</p>
-            {% else %}
-                <div style="text-align: center;">
-                    <img src="{{ qr_url }}" style="background:#fff; padding:5px; border-radius:10px; width:150px; margin-bottom:10px;">
+            <h1 class="text-2xl font-bold text-zinc-100 mb-6">Overview</h1>
+
+            <div class="glass rounded-xl p-6">
+                <div class="flex items-center gap-2 mb-4">
+                    <i class="fa-solid fa-key text-cyan-400"></i>
+                    <h2 class="text-lg font-semibold text-zinc-100">API Keys</h2>
                 </div>
-                <form action="/upgrade" method="POST">
-                    <input type="number" name="utr_number" class="upgrade-input" placeholder="Enter 12-digit UTR Number" required>
-                    <button type="submit" class="pay-btn">Submit Payment</button>
-                </form>
-            {% endif %}
+                
+                <div class="bg-zinc-950 border border-zinc-800 rounded-lg p-5">
+                    <div class="flex items-center gap-4 bg-zinc-900 border border-zinc-700 rounded-md px-4 py-2 mb-4">
+                        <input type="password" id="api_key" value="{{ key_data.api_key }}" class="bg-transparent text-cyan-400 font-mono tracking-widest w-full outline-none" readonly>
+                    </div>
+                    
+                    <div class="flex gap-4 mb-6 text-sm">
+                        <button onclick="toggleKey()" class="text-zinc-400 hover:text-cyan-400 transition"><i id="eye-icon" class="fa-solid fa-eye"></i> <span id="eye-text">Show</span></button>
+                        <button onclick="copyKey()" id="copy-btn" class="text-zinc-400 hover:text-cyan-400 transition"><i class="fa-regular fa-copy"></i> Copy</button>
+                    </div>
+
+                    {% set max_limit = 150 %}
+                    {% set usage = key_data.play_count %}
+                    {% set percentage = (usage / max_limit) * 100 if key_data.status != 'active' else 0 %}
+                    
+                    <div class="flex justify-between text-xs text-zinc-500 mb-2">
+                        <span>Usage</span><span>{% if key_data.status == 'active' %}Unlimited{% else %}{{ usage }} / {{ max_limit }}{% endif %}</span>
+                    </div>
+                    <div class="w-full bg-zinc-800 rounded-full h-1.5 mb-4">
+                        <div class="bg-cyan-500 h-1.5 rounded-full" style="width: {% if key_data.status == 'active' %}100%{% else %}{{ percentage }}%{% endif %}"></div>
+                    </div>
+                    
+                    <form action="/regenerate" method="POST" class="text-center pt-2 border-t border-zinc-800">
+                        <button type="submit" class="text-sm text-zinc-500 hover:text-zinc-300"><i class="fa-solid fa-rotate mr-1"></i> Regenerate</button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="glass rounded-xl p-6">
+                <h2 class="text-lg font-semibold text-zinc-100 mb-1"><i class="fa-solid fa-play text-fuchsia-500 mr-2"></i>Test API Endpoint</h2>
+                <p class="text-xs text-zinc-500 mb-4">Test the API directly with any YouTube video ID or URL</p>
+                <div class="flex gap-2">
+                    <input type="text" placeholder="Enter YouTube video ID..." class="flex-1 bg-zinc-950 border border-zinc-800 rounded-md px-4 py-2 text-zinc-300 outline-none focus:border-cyan-500 transition">
+                    <button class="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-6 py-2 rounded-md transition font-medium"><i class="fa-solid fa-play mr-2"></i>Test</button>
+                </div>
+                <div class="mt-4 bg-zinc-950 border border-zinc-800 p-4 rounded-md">
+                    <p class="text-sm font-semibold text-zinc-300 mb-2"><i class="fa-solid fa-circle-info text-cyan-500 mr-1"></i> Current API Response</p>
+                    <p class="text-xs text-zinc-500 leading-relaxed">The API currently returns audio and video URLs with 360p quality. For access to higher quality streams (720p, 1080p, 4K), please contact our team.</p>
+                </div>
+            </div>
+
+            <div class="glass rounded-xl p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <div>
+                        <h2 class="text-lg font-semibold text-zinc-100">Daily Usage</h2>
+                        <p class="text-xs text-zinc-500">API requests over the last 7 days</p>
+                    </div>
+                    <div class="bg-zinc-800 rounded-md flex text-xs">
+                        <button class="px-3 py-1 bg-zinc-700 text-white rounded-md">7D</button>
+                        <button class="px-3 py-1 text-zinc-400">30D</button>
+                    </div>
+                </div>
+                <div class="h-48 w-full">
+                    <canvas id="usageChart"></canvas>
+                </div>
+            </div>
+
         </div>
-    </div>
+    </main>
 
     <script>
-        function copyKey() {
-            var keyField = document.getElementById("api_key");
-            keyField.type = "text";
-            keyField.select();
-            document.execCommand("copy");
-            keyField.type = "password";
-            
-            var btn = document.querySelector(".copy-btn");
-            btn.innerText = "Copied!";
-            btn.style.background = "#00ffcc";
-            btn.style.color = "#000";
-            setTimeout(() => { btn.innerText = "Copy"; btn.style.background = "#444"; btn.style.color = "#fff"; }, 2000);
+        // Copy functionality
+        function toggleKey() {
+            const field = document.getElementById('api_key');
+            const icon = document.getElementById('eye-icon');
+            if(field.type === "password") { field.type = "text"; icon.className = "fa-solid fa-eye-slash"; } 
+            else { field.type = "password"; icon.className = "fa-solid fa-eye"; }
         }
+        function copyKey() {
+            const field = document.getElementById("api_key");
+            const btn = document.getElementById("copy-btn");
+            const wasPass = field.type === 'password';
+            if(wasPass) field.type = 'text';
+            navigator.clipboard.writeText(field.value).then(() => {
+                btn.innerHTML = '<i class="fa-solid fa-check text-cyan-400"></i> Copied';
+                if(wasPass) field.type = 'password';
+                setTimeout(() => { btn.innerHTML = '<i class="fa-regular fa-copy"></i> Copy'; }, 2000);
+            });
+        }
+        
+        // Chart.js Graph setup
+        const ctx = document.getElementById('usageChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['12 Apr', '13 Apr', '14 Apr', '15 Apr', '16 Apr', '17 Apr', '18 Apr'],
+                datasets: [{
+                    label: 'Requests',
+                    data: [130, 90, 40, 80, 65, 145, 24],
+                    borderColor: '#22d3ee', // Cyan-400
+                    backgroundColor: 'rgba(34, 211, 238, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4,
+                    pointBackgroundColor: '#09090b',
+                    pointBorderColor: '#22d3ee',
+                    pointBorderWidth: 2,
+                    pointRadius: 4
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true, max: 160, grid: { color: '#27272a' }, ticks: { color: '#71717a' } },
+                    x: { grid: { display: false }, ticks: { color: '#71717a' } }
+                }
+            }
+        });
     </script>
 </body>
 </html>
