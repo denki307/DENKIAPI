@@ -47,7 +47,7 @@ def not_found(e):
     return resp, 404
 
 # =======================================================
-# 🔥 THE BULLETPROOF AUDIO EXTRACTOR (HEROKU BAN BYPASS)
+# 🔥 THE BULLETPROOF AUDIO EXTRACTOR (CLOUDFLARE BYPASS)
 # =======================================================
 @app.route('/info/<video_id>', methods=['GET'])
 def extract_audio_info(video_id):
@@ -57,42 +57,61 @@ def extract_audio_info(video_id):
         if user:
             users_col.update_one({'api_key': bot_sent_key}, {'$inc': {'play_count': 1}})
 
-    # Heroku IP is banned by YouTube, so we completely bypass yt-dlp 
-    # and use 5 public Anti-Bot APIs to get the audio stream!
-    PIPED_INSTANCES = [
-        "https://pipedapi.kavin.rocks",
-        "https://pipedapi.syncpundit.io",
-        "https://api.piped.projectsegfau.lt",
-        "https://piped-api.garudalinux.org",
-        "https://pipedapi.adminforge.de"
-    ]
-    
+    # CRITICAL: We must pretend to be a real browser to pass Cloudflare on these APIs
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'application/json'
+    }
+
     audio_url = None
     title = f"YouTube Audio {video_id}"
     duration = 0
 
-    for instance in PIPED_INSTANCES:
+    # ATTEMPT 1: Invidious APIs (Highly Reliable)
+    INVIDIOUS_INSTANCES = [
+        "https://vid.puffyan.us",
+        "https://invidious.jing.rocks",
+        "https://inv.tux.pizza"
+    ]
+    
+    for instance in INVIDIOUS_INSTANCES:
         try:
-            piped_url = f"{instance}/streams/{video_id}"
-            res = requests.get(piped_url, timeout=7).json()
-            
-            if 'audioStreams' in res and len(res['audioStreams']) > 0:
-                # Find the best quality audio (usually m4a or webm)
-                for stream in res['audioStreams']:
-                    if stream.get('mimeType', '').startswith('audio/'):
-                        audio_url = stream['url']
+            url = f"{instance}/api/v1/videos/{video_id}"
+            res = requests.get(url, headers=headers, timeout=5).json()
+            if 'adaptiveFormats' in res:
+                for f in res['adaptiveFormats']:
+                    if 'audio' in f.get('type', ''):
+                        audio_url = f['url']
                         break
-                if not audio_url:
-                    audio_url = res['audioStreams'][0]['url']
-                    
+            if audio_url:
                 title = res.get('title', title)
-                duration = res.get('duration', 0)
-                break # Success! Break the loop.
+                duration = res.get('lengthSeconds', 0)
+                break
         except:
-            continue # Try next server if this one fails
+            continue
 
+    # ATTEMPT 2: Piped APIs (If Invidious fails)
+    if not audio_url:
+        PIPED_INSTANCES = [
+            "https://pipedapi.kavin.rocks",
+            "https://pipedapi.syncpundit.io"
+        ]
+        for instance in PIPED_INSTANCES:
+            try:
+                piped_url = f"{instance}/streams/{video_id}"
+                res = requests.get(piped_url, headers=headers, timeout=5).json()
+                if 'audioStreams' in res and len(res['audioStreams']) > 0:
+                    for stream in res['audioStreams']:
+                        if stream.get('mimeType', '').startswith('audio/'):
+                            audio_url = stream['url']
+                            break
+                    if not audio_url: audio_url = res['audioStreams'][0]['url']
+                    break
+            except:
+                continue
+
+    # IF SUCCESS: Return exact format AviaxMusic expects
     if audio_url:
-        # AviaxMusic strictly expects this JSON format from yt-dlp
         fake_ytdlp_info = {
             "id": video_id,
             "title": title,
@@ -106,11 +125,12 @@ def extract_audio_info(video_id):
         resp.headers['Content-Type'] = 'application/json'
         return resp
     else:
-        # If all 5 servers fail (very rare)
-        return jsonify({"error": "All bypass servers failed. YouTube block active."}), 500
+        resp = make_response(jsonify({"error": "All bypass servers failed. YouTube block active."}))
+        resp.headers['Content-Type'] = 'application/json'
+        return resp, 500
 
 # =======================================================
-# --- SEARCH PROXY ROUTE (Fallback for bot searches)
+# --- SEARCH PROXY ROUTE 
 # =======================================================
 @app.route('/youtube/v3/<path:endpoint>', methods=['GET'])
 def proxy_youtube(endpoint):
@@ -179,4 +199,3 @@ def logout():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
-
