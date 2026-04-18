@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-[#09090b] text-zinc-300 flex items-center justify-center h-screen px-4">
+    <div class="bg-[#111114] border border-zinc-800 p-8 rounded-3xl w-full max-w-md">
+        <h2 class="text-3xl font-black text-white mb-2">Register</h2>
+        <p class="text-sm text-zinc-500 mb-6">Create a new API account.</p>
+        {% if error %}<div class="bg-red-500/10 text-red-500 p-3 rounded-xl mb-4 text-sm text-center font-bold">{{ error }}</div>{% endif %}
+        <form action="/register" method="POST" class="space-y-4">
+            <input type="email" name="email" required placeholder="Email" class="w-full bg-black border border-zinc-800 rounded-xl p-4 text-white outline-none focus:border-cyan-500">
+            <input type="password" name="password" required placeholder="Password" class="w-full bg-black border border-zinc-800 rounded-xl p-4 text-white outline-none focus:border-cyan-500">
+            <input type="password" name="confirm_password" required placeholder="Confirm Password" class="w-full bg-black border border-zinc-800 rounded-xl p-4 text-white outline-none focus:border-cyan-500">
+            <button type="submit" class="w-full bg-cyan-500 text-black font-bold py-4 rounded-xl mt-4">SIGN UP</button>
+        </form>
+        <p class="text-center text-zinc-500 text-sm mt-6">Already have an account? <a href="/login" class="text-cyan-500 font-bold">Login</a></p>
+    </div>
+</body>
+</html>
+
