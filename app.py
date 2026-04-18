@@ -1,4 +1,4 @@
-import os, secrets, random, string
+import os, secrets, random, string, requests
 from flask import Flask, render_template, request, jsonify, redirect, url_for, session
 from datetime import datetime, timedelta
 from pymongo import MongoClient
@@ -6,10 +6,10 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from bson.objectid import ObjectId
 
 app = Flask(__name__)
-# Permanent Secret Key
+# Permanent Secret Key so sessions don't drop
 app.secret_key = "denki_ultra_secure_permanent_key_2026"
 
-# Configuration
+# --- CONFIGURATION ---
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "boss")
 UPI_ID = "denkielangokey@fam"
 OFFICIAL_YT_KEY = os.getenv("YT_API_KEY", "AIzaSyDV4lSw3PHOCdl20dDY_e7bkp3xXXc_FD4")
@@ -28,26 +28,29 @@ PLANS = {
     "ultra": {"name": "Ultra", "price": 2389, "limit": 150000}
 }
 
-# --- HELPER FUNCTION: Get Indian Standard Time (IST) ---
+# --- HELPER FUNCTIONS ---
 def ist_now():
     return datetime.utcnow() + timedelta(hours=5, minutes=30)
 
-# --- SYNC LOGIC (Daily Reset & 30-Day Expiry) ---
 def sync_user(user):
     today = ist_now().strftime('%Y-%m-%d')
     updates = {}
     
+    # Daily Limit Reset at Midnight IST
     if user.get('last_reset') != today:
         updates['play_count'] = 0
         updates['last_reset'] = today
 
+    # 30-Day Expiry Check
     if user['plan_name'] != 'Free' and user['expiry_date'] != 'Lifetime':
         expiry_dt = datetime.strptime(user['expiry_date'], '%d %b %Y')
         if ist_now() > expiry_dt:
-            updates['plan_name'] = 'Free'
-            updates['max_limit'] = 150
-            updates['expiry_date'] = 'Lifetime'
-            updates['play_count'] = 0
+            updates.update({
+                'plan_name': 'Free',
+                'max_limit': 150,
+                'expiry_date': 'Lifetime',
+                'play_count': 0
+            })
 
     if updates:
         users_col.update_one({'email': user['email']}, {'$set': updates})
@@ -101,7 +104,7 @@ def logout():
     session.clear()
     return redirect(url_for('index'))
 
-# --- CORE ROUTES ---
+# --- CORE DASHBOARD ROUTES ---
 @app.route('/dashboard')
 def dashboard():
     if 'email' not in session: return redirect(url_for('login'))
@@ -119,6 +122,54 @@ def dashboard():
         
     return render_template('dashboard.html', user=user, days_left=days_left)
 
+@app.route('/api/stats')
+def get_stats():
+    if 'email' not in session: return jsonify({}), 401
+    user = sync_user(users_col.find_one({'email': session['email']}))
+    return jsonify({
+        "play_count": user['play_count'],
+        "max_limit": user['max_limit'],
+        "balance": user['balance']
+    })
+
+# --- PROXY YOUTUBE API (THE MAGIC) ---
+# Your bot calls this instead of Google
+@app.route('/youtube/v3/search')
+def proxy_youtube():
+    bot_sent_key = request.args.get('key')
+    query = request.args.get('q')
+    
+    if not bot_sent_key:
+        return jsonify({"error": "No API Key provided"}), 400
+
+    user = users_col.find_one({'api_key': bot_sent_key})
+    if not user:
+        return jsonify({"error": "Invalid Denki API Key"}), 403
+
+    user = sync_user(user)
+    if user['play_count'] >= user['max_limit']:
+        return jsonify({"error": "Limit Reached. Upgrade Plan."}), 403
+
+    # Success! Increment play count in DB
+    users_col.update_one({'api_key': bot_sent_key}, {'$inc': {'play_count': 1}})
+
+    # Fetch real data from YouTube
+    yt_url = f"https://www.googleapis.com/youtube/v3/search"
+    params = {
+        "part": "snippet",
+        "q": query,
+        "maxResults": 1,
+        "key": OFFICIAL_YT_KEY,
+        "type": "video"
+    }
+    
+    try:
+        yt_resp = requests.get(yt_url, params=params).json()
+        return jsonify(yt_resp)
+    except:
+        return jsonify({"error": "YouTube API unreachable"}), 500
+
+# --- BILLING & PLANS ---
 @app.route('/billing', methods=['GET', 'POST'])
 def billing():
     if 'email' not in session: return redirect(url_for('login'))
@@ -127,7 +178,7 @@ def billing():
         utr, amt = request.form.get('utr').strip(), int(request.form.get('amount'))
         tx_col.insert_one({
             "email": user['email'], "username": user['username'], "utr": utr, 
-            "amount": amt, "status": "pending", "date": ist_now().strftime('%d %b, %I:%M %p')
+            "amount": amt, "status": "pending", "date": ist_now().strftime('%d %b, %H:%M')
         })
     txs = list(tx_col.find({'email': user['email']}).sort('_id', -1))
     qr_url = f"https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=upi://pay?pa={UPI_ID}%26pn=DenkiAPI"
@@ -153,23 +204,6 @@ def buy_plan(plan_id):
         })
     return redirect(url_for('dashboard'))
 
-# --- BOT API ENDPOINT ---
-@app.route('/api/verify', methods=['POST'])
-def verify():
-    data = request.get_json(silent=True) or {}
-    key = data.get('api_key')
-    if not key: return jsonify({"status": "invalid", "reason": "No API key provided"}), 400
-    
-    user = users_col.find_one({'api_key': key})
-    if not user: return jsonify({"status": "invalid"}), 404
-    
-    user = sync_user(user)
-    if user['play_count'] < user['max_limit']:
-        users_col.update_one({'api_key': user['api_key']}, {'$inc': {'play_count': 1}})
-        return jsonify({"status": "success", "plan": user['plan_name'], "yt_key": OFFICIAL_YT_KEY}), 200
-        
-    return jsonify({"status": "limit_reached", "reason": "Daily limit exceeded"}), 403
-
 # --- ADMIN PANEL ---
 @app.route('/admin')
 def admin():
@@ -192,4 +226,3 @@ def admin_action(tid, action):
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
-
