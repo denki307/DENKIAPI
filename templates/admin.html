@@ -1,33 +1,24 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Admin Dashboard</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-[#09090b] text-zinc-300 p-4 md:p-8">
+<html>
+<head><script src="https://cdn.tailwindcss.com"></script></head>
+<body class="bg-black text-zinc-300 p-10 font-sans">
     <div class="max-w-4xl mx-auto">
-        <h1 class="text-2xl font-bold text-white mb-8 border-b border-zinc-800 pb-4">Admin Control</h1>
-        
-        <h2 class="text-lg font-bold text-cyan-400 mb-4">Pending Recharges</h2>
-        <div class="grid gap-4">
+        <h1 class="text-4xl font-black text-cyan-500 mb-10">ADMIN CONTROL</h1>
+        <div class="space-y-4">
             {% for p in pending %}
-            <div class="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl flex flex-col md:flex-row justify-between md:items-center gap-4">
+            <div class="bg-zinc-900 border border-zinc-800 p-8 rounded-3xl flex justify-between items-center">
                 <div>
-                    <p class="text-xs text-zinc-500 font-bold uppercase mb-1">Amount Requested</p>
-                    <p class="text-3xl font-black text-white mb-2">₹{{ p.amount }}</p>
-                    <p class="text-sm font-mono text-zinc-400">UTR: {{ p.utr }}</p>
-                    <p class="text-xs font-mono text-zinc-600 mt-1">Key: {{ p.api_key[:15] }}...</p>
+                    <p class="text-xs text-zinc-500 font-bold mb-1">USER: {{ p.username }}</p>
+                    <h2 class="text-4xl font-black text-white mb-2">₹{{ p.amount }}</h2>
+                    <p class="font-mono text-cyan-500">UTR: {{ p.utr }}</p>
                 </div>
-                <div class="flex gap-3 mt-4 md:mt-0">
-                    <a href="/admin_action/{{ p.id }}/approve?pwd={{ pwd }}" class="flex-1 text-center bg-green-500/20 text-green-400 border border-green-500/30 hover:bg-green-500 hover:text-black font-bold px-6 py-3 rounded-xl transition">Approve</a>
-                    <a href="/admin_action/{{ p.id }}/reject?pwd={{ pwd }}" class="flex-1 text-center bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500 hover:text-white font-bold px-6 py-3 rounded-xl transition">Reject</a>
+                <div class="flex gap-4">
+                    <a href="/admin_action/{{ p.id }}/approve?pwd={{ pwd }}" class="bg-green-600 px-8 py-3 rounded-2xl text-white font-bold">Approve</a>
+                    <a href="/admin_action/{{ p.id }}/reject?pwd={{ pwd }}" class="bg-red-600 px-8 py-3 rounded-2xl text-white font-bold">Reject</a>
                 </div>
             </div>
             {% else %}
-            <div class="bg-zinc-900 border border-zinc-800 p-8 rounded-2xl text-center text-zinc-500">
-                No pending UTR verifications.
-            </div>
+            <p class="text-zinc-500 text-center py-20">No pending requests.</p>
             {% endfor %}
         </div>
     </div>
