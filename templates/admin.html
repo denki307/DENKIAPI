@@ -13,8 +13,8 @@
                     <p class="font-mono text-cyan-500 text-sm">UTR: {{ p.utr }}</p>
                 </div>
                 <div class="flex gap-4">
-                    <a href="/admin_action/{{ p.id }}/approve?pwd={{ pwd }}" class="bg-green-600 px-6 py-3 rounded-xl text-white font-bold">Approve</a>
-                    <a href="/admin_action/{{ p.id }}/reject?pwd={{ pwd }}" class="bg-red-600 px-6 py-3 rounded-xl text-white font-bold">Reject</a>
+                    <a href="/admin_action/{{ p._id }}/approve?pwd={{ pwd }}" class="bg-green-600 px-6 py-3 rounded-xl text-white font-bold hover:bg-green-500 transition">Approve</a>
+                    <a href="/admin_action/{{ p._id }}/reject?pwd={{ pwd }}" class="bg-red-600 px-6 py-3 rounded-xl text-white font-bold hover:bg-red-500 transition">Reject</a>
                 </div>
             </div>
             {% else %}
