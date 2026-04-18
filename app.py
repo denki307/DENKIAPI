@@ -6,120 +6,44 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from bson.objectid import ObjectId
 
 app = Flask(__name__)
-# Session security
 app.secret_key = "denki_ultra_secure_permanent_key_2026"
 
 # --- CONFIGURATION ---
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "boss")
 UPI_ID = "denkielangokey@fam"
-# Your Official YouTube API Key
 OFFICIAL_YT_KEY = os.getenv("YT_API_KEY", "AIzaSyDV4lSw3PHOCdl20dDY_e7bkp3xXXc_FD4")
 
 # MongoDB Connection
-MONGO_URI = os.getenv("MONGO_URI", "mongodb+srv://Devilsirophai:devilbhaiontop@devil0.d9epxqw.mongodb.net/?appName=Devil0") 
+MONGO_URI = "mongodb+srv://Devilsirophai:devilbhaiontop@devil0.d9epxqw.mongodb.net/?appName=Devil0"
 client = MongoClient(MONGO_URI)
 db = client['denki_platform']
 users_col = db['users']
 tx_col = db['transactions']
 
-PLANS = {
-    "lite": {"name": "Lite", "price": 32, "limit": 1500},
-    "basic": {"name": "Basic", "price": 59, "limit": 3000},
-    "pro": {"name": "Pro", "price": 285, "limit": 25000},
-    "ultra": {"name": "Ultra", "price": 2389, "limit": 150000}
-}
+PLANS = {"lite": 1500, "basic": 3000, "pro": 25000, "ultra": 150000}
 
-# --- HELPER FUNCTIONS ---
 def ist_now():
     return datetime.utcnow() + timedelta(hours=5, minutes=30)
 
 def sync_user(user):
     today = ist_now().strftime('%Y-%m-%d')
     updates = {}
-    
     if user.get('last_reset') != today:
         updates['play_count'] = 0
         updates['last_reset'] = today
-
     if user['plan_name'] != 'Free' and user['expiry_date'] != 'Lifetime':
         expiry_dt = datetime.strptime(user['expiry_date'], '%d %b %Y')
         if ist_now() > expiry_dt:
-            updates.update({
-                'plan_name': 'Free',
-                'max_limit': 150,
-                'expiry_date': 'Lifetime',
-                'play_count': 0
-            })
-
+            updates.update({'plan_name': 'Free', 'max_limit': 150, 'expiry_date': 'Lifetime', 'play_count': 0})
     if updates:
         users_col.update_one({'email': user['email']}, {'$set': updates})
         return users_col.find_one({'email': user['email']})
     return user
 
-# --- AUTH ROUTES ---
-@app.route('/')
-def index():
-    if 'email' in session: return redirect(url_for('dashboard'))
-    return render_template('index.html')
-
-@app.route('/register', methods=['GET', 'POST'])
-def register():
-    if 'email' in session: return redirect(url_for('dashboard'))
-    if request.method == 'POST':
-        email = request.form.get('email', '').lower().strip()
-        pw = request.form.get('password')
-        cpw = request.form.get('confirm_password')
-        if pw != cpw: return render_template('register.html', error="Passwords do not match!")
-        if users_col.find_one({'email': email}): return render_template('register.html', error="Email exists!")
-        key = f"DENKI-{secrets.token_hex(6).upper()}"
-        users_col.insert_one({
-            "email": email, "password": generate_password_hash(pw), "username": "Denki_" + ''.join(random.choices(string.digits, k=5)),
-            "api_key": key, "balance": 0, "play_count": 0, "max_limit": 150,
-            "plan_name": "Free", "expiry_date": "Lifetime", "last_reset": ist_now().strftime('%Y-%m-%d')
-        })
-        session['email'] = email
-        return redirect(url_for('dashboard'))
-    return render_template('register.html')
-
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if 'email' in session: return redirect(url_for('dashboard'))
-    if request.method == 'POST':
-        email = request.form.get('email', '').lower().strip()
-        user = users_col.find_one({'email': email})
-        if user and check_password_hash(user['password'], request.form.get('password')):
-            session['email'] = email
-            return redirect(url_for('dashboard'))
-        return render_template('login.html', error="Invalid credentials!")
-    return render_template('login.html')
-
-@app.route('/logout')
-def logout():
-    session.clear()
-    return redirect(url_for('index'))
-
-# --- DASHBOARD & STATS ---
-@app.route('/dashboard')
-def dashboard():
-    if 'email' not in session: return redirect(url_for('login'))
-    user = users_col.find_one({'email': session['email']})
-    if not user: return redirect(url_for('logout'))
-    user = sync_user(user)
-    days_left = "∞"
-    if user['expiry_date'] != 'Lifetime':
-        delta = datetime.strptime(user['expiry_date'], '%d %b %Y') - ist_now()
-        days_left = f"{max(0, delta.days)} days left"
-    return render_template('dashboard.html', user=user, days_left=days_left)
-
-@app.route('/api/stats')
-def get_stats():
-    if 'email' not in session: return jsonify({}), 401
-    user = sync_user(users_col.find_one({'email': session['email']}))
-    return jsonify({"play_count": user['play_count'], "max_limit": user['max_limit'], "balance": user['balance']})
-
-# --- PROXY YOUTUBE API (STRICT JSON VERSION) ---
+# --- PROXY YOUTUBE API (ULTRA COMPATIBLE VERSION) ---
 @app.route('/youtube/v3/search', methods=['GET'])
 def proxy_youtube():
+    # 1. API Key check
     bot_sent_key = request.args.get('key')
     if not bot_sent_key:
         return jsonify({"error": {"message": "API Key Missing"}}), 400
@@ -130,66 +54,87 @@ def proxy_youtube():
 
     user = sync_user(user)
     if user['play_count'] >= user['max_limit']:
-        return jsonify({"error": {"message": "Limit Reached"}}), 403
+        return jsonify({"error": {"message": "Daily Limit Reached"}}), 403
 
-    # Update Play Count
+    # 2. Database count update
     users_col.update_one({'api_key': bot_sent_key}, {'$inc': {'play_count': 1}})
 
-    # Forward to Google
+    # 3. Requesting Official Google API
     yt_params = dict(request.args)
-    yt_params['key'] = OFFICIAL_YT_KEY
-    if 'part' not in yt_params: yt_params['part'] = 'snippet'
+    yt_params['key'] = OFFICIAL_YT_KEY # Denki key-ah Official key-ah maathiduvom
     
-    try:
-        r = requests.get("https://www.googleapis.com/youtube/v3/search", params=yt_params, timeout=15)
-        # Force the response to be strict JSON for the bot
-        resp = make_response(jsonify(r.json()))
-        resp.headers['Content-Type'] = 'application/json'
-        return resp
-    except:
-        return jsonify({"error": "Internal Proxy Error"}), 500
+    # AviaxMusic bot-ku snippet detail romba mukkiyam
+    if 'part' not in yt_params: yt_params['part'] = 'snippet'
+    if 'type' not in yt_params: yt_params['type'] = 'video'
 
-# --- BILLING & ADMIN ---
+    try:
+        headers = {'User-Agent': 'Mozilla/5.0'}
+        r = requests.get("https://www.googleapis.com/youtube/v3/search", params=yt_params, headers=headers, timeout=15)
+        
+        # Inga thaan namma JSON-ah pathila tharoom
+        yt_json = r.json()
+        
+        # Bot "line 1 column 1" error adikkama irukka perfect JSON force pandroom
+        response = make_response(jsonify(yt_json))
+        response.headers['Content-Type'] = 'application/json'
+        return response
+    except Exception as e:
+        # Request fail aana kooda namma JSON thaan anuppanum
+        return jsonify({"error": "Proxy Error", "details": str(e)}), 500
+
+# --- OTHER ROUTES ---
+@app.route('/')
+def index():
+    if 'email' in session: return redirect(url_for('dashboard'))
+    return render_template('index.html')
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        email, pw, cpw = request.form.get('email', '').lower().strip(), request.form.get('password'), request.form.get('confirm_password')
+        if pw != cpw: return render_template('register.html', error="Passwords do not match!")
+        if users_col.find_one({'email': email}): return render_template('register.html', error="Email exists!")
+        key = f"DENKI-{secrets.token_hex(6).upper()}"
+        users_col.insert_one({"email": email, "password": generate_password_hash(pw), "username": "Denki_"+''.join(random.choices(string.digits, k=5)), "api_key": key, "balance": 0, "play_count": 0, "max_limit": 150, "plan_name": "Free", "expiry_date": "Lifetime", "last_reset": ist_now().strftime('%Y-%m-%d')})
+        session['email'] = email
+        return redirect(url_for('dashboard'))
+    return render_template('register.html')
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        email, pw = request.form.get('email', '').lower().strip(), request.form.get('password')
+        user = users_col.find_one({'email': email})
+        if user and check_password_hash(user['password'], pw):
+            session['email'] = email
+            return redirect(url_for('dashboard'))
+        return render_template('login.html', error="Invalid Login!")
+    return render_template('login.html')
+
+@app.route('/dashboard')
+def dashboard():
+    if 'email' not in session: return redirect(url_for('login'))
+    user = sync_user(users_col.find_one({'email': session['email']}))
+    return render_template('dashboard.html', user=user, days_left="∞")
+
+@app.route('/api/stats')
+def get_stats():
+    if 'email' not in session: return jsonify({}), 401
+    user = sync_user(users_col.find_one({'email': session['email']}))
+    return jsonify({"play_count": user['play_count'], "max_limit": user['max_limit'], "balance": user['balance']})
+
 @app.route('/billing', methods=['GET', 'POST'])
 def billing():
     if 'email' not in session: return redirect(url_for('login'))
     user = users_col.find_one({'email': session['email']})
     if request.method == 'POST':
-        tx_col.insert_one({"email": user['email'], "username": user['username'], "utr": request.form.get('utr', '').strip(), "amount": int(request.form.get('amount', 0)), "status": "pending", "date": ist_now().strftime('%d %b, %H:%M')})
+        tx_col.insert_one({"email": user['email'], "username": user['username'], "utr": request.form.get('utr'), "amount": int(request.form.get('amount', 0)), "status": "pending", "date": ist_now().strftime('%d %b, %H:%M')})
     return render_template('billing.html', user=user, txs=list(tx_col.find({'email': user['email']}).sort('_id', -1)), qr_url=f"https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=upi://pay?pa={UPI_ID}")
 
-@app.route('/plans')
-def plans():
-    if 'email' not in session: return redirect(url_for('login'))
-    return render_template('plans.html', user=users_col.find_one({'email': session['email']}), plans=PLANS)
-
-@app.route('/buy_plan/<plan_id>')
-def buy_plan(plan_id):
-    if 'email' not in session or plan_id not in PLANS: return redirect(url_for('plans'))
-    plan, user = PLANS[plan_id], users_col.find_one({'email': session['email']})
-    if user['balance'] >= plan['price']:
-        expiry = (ist_now() + timedelta(days=30)).strftime('%d %b %Y')
-        users_col.update_one({'email': user['email']}, {'$inc': {'balance': -plan['price']}, '$set': {'plan_name': plan['name'], 'max_limit': plan['limit'], 'expiry_date': expiry, 'play_count': 0}})
-    return redirect(url_for('dashboard'))
-
-@app.route('/admin')
-def admin():
-    if request.args.get('pwd') != ADMIN_PASSWORD: return "Denied", 403
-    return render_template('admin.html', pending=list(tx_col.find({'status': 'pending'}).sort('_id', -1)), pwd=ADMIN_PASSWORD)
-
-@app.route('/admin_action/<tid>/<action>')
-def admin_action(tid, action):
-    if request.args.get('pwd') != ADMIN_PASSWORD: return "Denied", 403
-    tx = tx_col.find_one({'_id': ObjectId(tid)})
-    if tx and tx['status'] == 'pending':
-        if action == 'approve':
-            users_col.update_one({'email': tx['email']}, {'$inc': {'balance': tx['amount']}})
-            tx_col.update_one({'_id': ObjectId(tid)}, {'$set': {'status': 'approved'}})
-        else:
-            tx_col.update_one({'_id': ObjectId(tid)}, {'$set': {'status': 'rejected'}})
-    return redirect(url_for('admin', pwd=ADMIN_PASSWORD))
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('index'))
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port)
-
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
