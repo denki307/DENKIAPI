@@ -4,7 +4,6 @@ from datetime import datetime, timedelta
 from pymongo import MongoClient
 from werkzeug.security import generate_password_hash, check_password_hash
 from bson.objectid import ObjectId
-import yt_dlp  
 
 app = Flask(__name__)
 app.secret_key = "denki_ultra_secure_permanent_key_2026"
@@ -14,7 +13,7 @@ ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "boss")
 UPI_ID = "denkielangokey@fam"
 OFFICIAL_YT_KEY = os.getenv("YT_API_KEY", "AIzaSyDV4lSw3PHOCdl20dDY_e7bkp3xXXc_FD4")
 
-# MongoDB Connection
+# MongoDB
 MONGO_URI = "mongodb+srv://Devilsirophai:devilbhaiontop@devil0.d9epxqw.mongodb.net/?appName=Devil0"
 client = MongoClient(MONGO_URI)
 db = client['denki_platform']
@@ -48,7 +47,7 @@ def not_found(e):
     return resp, 404
 
 # =======================================================
-# 🔥 THE BULLETPROOF AUDIO EXTRACTOR (WITH PIPED API BYPASS)
+# 🔥 THE BULLETPROOF AUDIO EXTRACTOR (HEROKU BAN BYPASS)
 # =======================================================
 @app.route('/info/<video_id>', methods=['GET'])
 def extract_audio_info(video_id):
@@ -58,58 +57,60 @@ def extract_audio_info(video_id):
         if user:
             users_col.update_one({'api_key': bot_sent_key}, {'$inc': {'play_count': 1}})
 
-    # ATTEMPT 1: Try standard yt-dlp first
-    try:
-        ydl_opts = {
-            'format': 'bestaudio/best',
-            'noplaylist': True,
-            'quiet': True,
-            'skip_download': True,
-            'extractor_args': {'youtube': ['client=android']} 
-        }
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(f"https://www.youtube.com/watch?v={video_id}", download=False)
-            resp = make_response(jsonify(info))
-            resp.headers['Content-Type'] = 'application/json'
-            return resp
+    # Heroku IP is banned by YouTube, so we completely bypass yt-dlp 
+    # and use 5 public Anti-Bot APIs to get the audio stream!
+    PIPED_INSTANCES = [
+        "https://pipedapi.kavin.rocks",
+        "https://pipedapi.syncpundit.io",
+        "https://api.piped.projectsegfau.lt",
+        "https://piped-api.garudalinux.org",
+        "https://pipedapi.adminforge.de"
+    ]
+    
+    audio_url = None
+    title = f"YouTube Audio {video_id}"
+    duration = 0
 
-    except Exception as yt_error:
-        # ATTEMPT 2: yt-dlp Blocked! Fallback to Piped API (Anti-Bot Bypass)
-        PIPED_INSTANCES = [
-            "https://pipedapi.kavin.rocks",
-            "https://pipedapi.syncpundit.io",
-            "https://piped-api.garudalinux.org"
-        ]
-        
-        audio_url = None
-        for instance in PIPED_INSTANCES:
-            try:
-                piped_url = f"{instance}/streams/{video_id}"
-                piped_res = requests.get(piped_url, timeout=5).json()
-                
-                if 'audioStreams' in piped_res and len(piped_res['audioStreams']) > 0:
-                    audio_url = piped_res['audioStreams'][0]['url']
-                    break # Found the audio, break the loop
-            except:
-                continue # If this instance fails, try the next one
-                
-        if audio_url:
-            # Format exactly how AviaxMusic expects from yt-dlp
-            fake_ytdlp_info = {
-                "id": video_id,
-                "url": audio_url,
-                "title": "Audio Stream",
-                "ext": "webm",
-                "format": "bestaudio"
-            }
-            resp = make_response(jsonify(fake_ytdlp_info))
-            resp.headers['Content-Type'] = 'application/json'
-            return resp
-        else:
-            return jsonify({"error": "Both YouTube and Piped API Blocked", "details": str(yt_error)}), 500
+    for instance in PIPED_INSTANCES:
+        try:
+            piped_url = f"{instance}/streams/{video_id}"
+            res = requests.get(piped_url, timeout=7).json()
+            
+            if 'audioStreams' in res and len(res['audioStreams']) > 0:
+                # Find the best quality audio (usually m4a or webm)
+                for stream in res['audioStreams']:
+                    if stream.get('mimeType', '').startswith('audio/'):
+                        audio_url = stream['url']
+                        break
+                if not audio_url:
+                    audio_url = res['audioStreams'][0]['url']
+                    
+                title = res.get('title', title)
+                duration = res.get('duration', 0)
+                break # Success! Break the loop.
+        except:
+            continue # Try next server if this one fails
+
+    if audio_url:
+        # AviaxMusic strictly expects this JSON format from yt-dlp
+        fake_ytdlp_info = {
+            "id": video_id,
+            "title": title,
+            "url": audio_url,
+            "ext": "m4a",
+            "format": "bestaudio",
+            "duration": duration,
+            "extractor": "youtube"
+        }
+        resp = make_response(jsonify(fake_ytdlp_info))
+        resp.headers['Content-Type'] = 'application/json'
+        return resp
+    else:
+        # If all 5 servers fail (very rare)
+        return jsonify({"error": "All bypass servers failed. YouTube block active."}), 500
 
 # =======================================================
-# --- SEARCH PROXY ROUTE
+# --- SEARCH PROXY ROUTE (Fallback for bot searches)
 # =======================================================
 @app.route('/youtube/v3/<path:endpoint>', methods=['GET'])
 def proxy_youtube(endpoint):
