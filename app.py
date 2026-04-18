@@ -6,58 +6,41 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from bson.objectid import ObjectId
 
 app = Flask(__name__)
-# Permanent Secret Key to keep users logged in
 app.secret_key = "denki_ultra_secure_permanent_key_2026"
 
 # --- CONFIGURATION ---
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "boss")
 UPI_ID = "denkielangokey@fam"
-# Your Official YouTube API Key
 OFFICIAL_YT_KEY = os.getenv("YT_API_KEY", "AIzaSyDV4lSw3PHOCdl20dDY_e7bkp3xXXc_FD4")
 
 # MongoDB Connection
-MONGO_URI = os.getenv("MONGO_URI", "mongodb+srv://Devilsirophai:devilbhaiontop@devil0.d9epxqw.mongodb.net/?appName=Devil0") 
+MONGO_URI = "mongodb+srv://Devilsirophai:devilbhaiontop@devil0.d9epxqw.mongodb.net/?appName=Devil0"
 client = MongoClient(MONGO_URI)
 db = client['denki_platform']
 users_col = db['users']
 tx_col = db['transactions']
 
-PLANS = {
-    "lite": {"name": "Lite", "price": 32, "limit": 1500},
-    "basic": {"name": "Basic", "price": 59, "limit": 3000},
-    "pro": {"name": "Pro", "price": 285, "limit": 25000},
-    "ultra": {"name": "Ultra", "price": 2389, "limit": 150000}
-}
+PLANS = {"lite": 1500, "basic": 3000, "pro": 25000, "ultra": 150000}
 
-# --- HELPER FUNCTIONS ---
 def ist_now():
-    # UTC to IST (GMT+5:30)
     return datetime.utcnow() + timedelta(hours=5, minutes=30)
 
 def sync_user(user):
     today = ist_now().strftime('%Y-%m-%d')
     updates = {}
-    
     if user.get('last_reset') != today:
         updates['play_count'] = 0
         updates['last_reset'] = today
-
     if user['plan_name'] != 'Free' and user['expiry_date'] != 'Lifetime':
         expiry_dt = datetime.strptime(user['expiry_date'], '%d %b %Y')
         if ist_now() > expiry_dt:
-            updates.update({
-                'plan_name': 'Free',
-                'max_limit': 150,
-                'expiry_date': 'Lifetime',
-                'play_count': 0
-            })
-
+            updates.update({'plan_name': 'Free', 'max_limit': 150, 'expiry_date': 'Lifetime', 'play_count': 0})
     if updates:
         users_col.update_one({'email': user['email']}, {'$set': updates})
         return users_col.find_one({'email': user['email']})
     return user
 
-# --- GLOBAL ERROR HANDLERS (Stops HTML from crashing the bot) ---
+# --- GLOBAL ERROR HANDLERS ---
 @app.errorhandler(404)
 def not_found(e):
     resp = make_response(jsonify({"error": {"message": "Not Found"}}))
@@ -69,6 +52,62 @@ def internal_error(e):
     resp = make_response(jsonify({"error": {"message": "Internal Server Error"}}))
     resp.headers['Content-Type'] = 'application/json'
     return resp, 500
+
+# --- PROXY YOUTUBE API (MULTI-ROUTE MAGIC) ---
+# Ithu bot eppadi thedunaalum kandupudikkum (/search OR /youtube/v3/search)
+@app.route('/search', methods=['GET'])
+@app.route('/youtube/v3/search', methods=['GET'])
+@app.route('/videos', methods=['GET'])
+@app.route('/youtube/v3/videos', methods=['GET'])
+@app.route('/playlists', methods=['GET'])
+@app.route('/youtube/v3/playlists', methods=['GET'])
+def proxy_youtube():
+    # Find exact target
+    path_req = request.path
+    if 'videos' in path_req:
+        endpoint = 'videos'
+    elif 'playlists' in path_req:
+        endpoint = 'playlists'
+    else:
+        endpoint = 'search'
+
+    bot_sent_key = request.args.get('key')
+    
+    if not bot_sent_key:
+        return jsonify({"error": {"message": "API Key Missing"}}), 400
+
+    # 1. VALIDATE KEY IN MONGODB
+    user = users_col.find_one({'api_key': bot_sent_key})
+    if not user:
+        return jsonify({"error": {"message": "Invalid Denki API Key"}}), 403
+
+    user = sync_user(user)
+    if user['play_count'] >= user['max_limit']:
+        return jsonify({"error": {"message": "Limit Reached"}}), 403
+
+    # 2. UPDATE COUNT LIVE
+    users_col.update_one({'api_key': bot_sent_key}, {'$inc': {'play_count': 1}})
+
+    # 3. FETCH FROM GOOGLE
+    yt_url = f"https://www.googleapis.com/youtube/v3/{endpoint}"
+    params = dict(request.args)
+    params['key'] = OFFICIAL_YT_KEY
+    
+    if endpoint == 'search' and 'part' not in params: 
+        params['part'] = 'snippet'
+    
+    try:
+        headers = {'User-Agent': 'Mozilla/5.0'}
+        r = requests.get(yt_url, params=params, headers=headers, timeout=15)
+        
+        # RETURN STRICT JSON TO BOT
+        resp = make_response(jsonify(r.json()))
+        resp.headers['Content-Type'] = 'application/json'
+        return resp
+    except Exception as e:
+        resp = make_response(jsonify({"error": {"message": "Proxy Error", "details": str(e)}}))
+        resp.headers['Content-Type'] = 'application/json'
+        return resp, 500
 
 # --- AUTH ROUTES ---
 @app.route('/')
@@ -143,47 +182,6 @@ def get_stats():
         "max_limit": user['max_limit'],
         "balance": user['balance']
     })
-
-# --- PROXY YOUTUBE API (ULTIMATE CATCH-ALL FOR BOTS) ---
-@app.route('/youtube/v3/<path:endpoint>', methods=['GET'])
-def proxy_youtube(endpoint):
-    bot_sent_key = request.args.get('key')
-    
-    if not bot_sent_key:
-        return jsonify({"error": {"message": "API Key Missing"}}), 400
-
-    user = users_col.find_one({'api_key': bot_sent_key})
-    if not user:
-        return jsonify({"error": {"message": "Invalid Denki API Key"}}), 403
-
-    user = sync_user(user)
-    if user['play_count'] >= user['max_limit']:
-        return jsonify({"error": {"message": "Limit Reached. Please Upgrade."}}), 403
-
-    # Update Play Count in Database
-    users_col.update_one({'api_key': bot_sent_key}, {'$inc': {'play_count': 1}})
-
-    # Forward ALL requests (search, videos, playlists, etc.) to Official Google API
-    yt_url = f"https://www.googleapis.com/youtube/v3/{endpoint}"
-    params = dict(request.args)
-    params['key'] = OFFICIAL_YT_KEY
-    
-    # Ensure bot gets the snippet details it expects
-    if 'part' not in params: 
-        params['part'] = 'snippet'
-    
-    try:
-        headers = {'User-Agent': 'Mozilla/5.0'}
-        r = requests.get(yt_url, params=params, headers=headers, timeout=15)
-        
-        # Force strict JSON format so bot doesn't throw 'line 1 column 1' error
-        resp = make_response(jsonify(r.json()))
-        resp.headers['Content-Type'] = 'application/json'
-        return resp
-    except Exception as e:
-        resp = make_response(jsonify({"error": {"message": "Internal Proxy Error", "details": str(e)}}))
-        resp.headers['Content-Type'] = 'application/json'
-        return resp, 500
 
 # --- BILLING & PLANS ---
 @app.route('/billing', methods=['GET', 'POST'])
