@@ -15,7 +15,7 @@ UPI_ID = "denkielangokey@fam"
 OFFICIAL_YT_KEY = os.getenv("YT_API_KEY", "AIzaSyDV4lSw3PHOCdl20dDY_e7bkp3xXXc_FD4")
 
 # MongoDB Connection
-MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/") 
+MONGO_URI = os.getenv("MONGO_URI", "mongodb+srv://Devilsirophai:devilbhaiontop@devil0.d9epxqw.mongodb.net/?appName=Devil0") 
 client = MongoClient(MONGO_URI)
 db = client['denki_platform']
 users_col = db['users']
