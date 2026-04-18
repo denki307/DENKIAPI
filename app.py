@@ -14,7 +14,7 @@ ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "boss")
 UPI_ID = "denkielangokey@fam"
 OFFICIAL_YT_KEY = os.getenv("YT_API_KEY", "AIzaSyDV4lSw3PHOCdl20dDY_e7bkp3xXXc_FD4")
 
-# MongoDB
+# MongoDB Connection
 MONGO_URI = "mongodb+srv://Devilsirophai:devilbhaiontop@devil0.d9epxqw.mongodb.net/?appName=Devil0"
 client = MongoClient(MONGO_URI)
 db = client['denki_platform']
@@ -48,42 +48,68 @@ def not_found(e):
     return resp, 404
 
 # =======================================================
-# 🔥 THE BYPASS ENDPOINT FOR BOT PROTECTION
+# 🔥 THE BULLETPROOF AUDIO EXTRACTOR (WITH PIPED API BYPASS)
 # =======================================================
 @app.route('/info/<video_id>', methods=['GET'])
 def extract_audio_info(video_id):
     bot_sent_key = request.args.get('key') or request.headers.get('Authorization')
-    
     if bot_sent_key:
         user = users_col.find_one({'api_key': bot_sent_key})
         if user:
             users_col.update_one({'api_key': bot_sent_key}, {'$inc': {'play_count': 1}})
 
-    # 🔥 MAGIC: Android Fake-Out + Geo Bypass
-    ydl_opts = {
-        'format': 'bestaudio/best',
-        'noplaylist': True,
-        'quiet': True,
-        'skip_download': True,
-        'geo_bypass': True,
-        'nocheckcertificate': True,
-        'extractor_args': {'youtube': ['client=android', 'player_client=android']} # This stops the "Bot" error!
-    }
-    
+    # ATTEMPT 1: Try standard yt-dlp first
     try:
+        ydl_opts = {
+            'format': 'bestaudio/best',
+            'noplaylist': True,
+            'quiet': True,
+            'skip_download': True,
+            'extractor_args': {'youtube': ['client=android']} 
+        }
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            # Using the direct YouTube URL instead of the weird googleusercontent link
             info = ydl.extract_info(f"https://www.youtube.com/watch?v={video_id}", download=False)
             resp = make_response(jsonify(info))
             resp.headers['Content-Type'] = 'application/json'
             return resp
-    except Exception as e:
-        resp = make_response(jsonify({"error": "Failed to extract audio", "details": str(e)}))
-        resp.headers['Content-Type'] = 'application/json'
-        return resp, 500
+
+    except Exception as yt_error:
+        # ATTEMPT 2: yt-dlp Blocked! Fallback to Piped API (Anti-Bot Bypass)
+        PIPED_INSTANCES = [
+            "https://pipedapi.kavin.rocks",
+            "https://pipedapi.syncpundit.io",
+            "https://piped-api.garudalinux.org"
+        ]
+        
+        audio_url = None
+        for instance in PIPED_INSTANCES:
+            try:
+                piped_url = f"{instance}/streams/{video_id}"
+                piped_res = requests.get(piped_url, timeout=5).json()
+                
+                if 'audioStreams' in piped_res and len(piped_res['audioStreams']) > 0:
+                    audio_url = piped_res['audioStreams'][0]['url']
+                    break # Found the audio, break the loop
+            except:
+                continue # If this instance fails, try the next one
+                
+        if audio_url:
+            # Format exactly how AviaxMusic expects from yt-dlp
+            fake_ytdlp_info = {
+                "id": video_id,
+                "url": audio_url,
+                "title": "Audio Stream",
+                "ext": "webm",
+                "format": "bestaudio"
+            }
+            resp = make_response(jsonify(fake_ytdlp_info))
+            resp.headers['Content-Type'] = 'application/json'
+            return resp
+        else:
+            return jsonify({"error": "Both YouTube and Piped API Blocked", "details": str(yt_error)}), 500
 
 # =======================================================
-# --- SEARCH PROXY 
+# --- SEARCH PROXY ROUTE
 # =======================================================
 @app.route('/youtube/v3/<path:endpoint>', methods=['GET'])
 def proxy_youtube(endpoint):
