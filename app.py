@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from pymongo import MongoClient
 from werkzeug.security import generate_password_hash, check_password_hash
 from bson.objectid import ObjectId
-import yt_dlp  # 🔥 THE MAGIC MODULE FOR AUDIO EXTRACTION
+import yt_dlp  
 
 app = Flask(__name__)
 app.secret_key = "denki_ultra_secure_permanent_key_2026"
@@ -41,7 +41,6 @@ def sync_user(user):
         return users_col.find_one({'email': user['email']})
     return user
 
-# --- GLOBAL ERROR HANDLERS ---
 @app.errorhandler(404)
 def not_found(e):
     resp = make_response(jsonify({"error": "Endpoint not found"}))
@@ -49,32 +48,32 @@ def not_found(e):
     return resp, 404
 
 # =======================================================
-# 🔥 THE NEW ENDPOINT THAT AVIAXMUSIC BOT ACTUALLY WANTS
+# 🔥 THE BYPASS ENDPOINT FOR BOT PROTECTION
 # =======================================================
 @app.route('/info/<video_id>', methods=['GET'])
 def extract_audio_info(video_id):
-    # Bot sometimes doesn't send the key in the URL for this endpoint
     bot_sent_key = request.args.get('key') or request.headers.get('Authorization')
     
-    # If a key is sent, update the play count in Database
     if bot_sent_key:
         user = users_col.find_one({'api_key': bot_sent_key})
         if user:
             users_col.update_one({'api_key': bot_sent_key}, {'$inc': {'play_count': 1}})
 
-    # Use yt-dlp to extract the raw Audio Stream URL
+    # 🔥 MAGIC: Android Fake-Out + Geo Bypass
     ydl_opts = {
         'format': 'bestaudio/best',
         'noplaylist': True,
         'quiet': True,
-        'skip_download': True
+        'skip_download': True,
+        'geo_bypass': True,
+        'nocheckcertificate': True,
+        'extractor_args': {'youtube': ['client=android', 'player_client=android']} # This stops the "Bot" error!
     }
+    
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            # Get video data without downloading
+            # Using the direct YouTube URL instead of the weird googleusercontent link
             info = ydl.extract_info(f"https://www.youtube.com/watch?v={video_id}", download=False)
-            
-            # Send exactly what the bot needs
             resp = make_response(jsonify(info))
             resp.headers['Content-Type'] = 'application/json'
             return resp
@@ -84,7 +83,7 @@ def extract_audio_info(video_id):
         return resp, 500
 
 # =======================================================
-# --- OLD PROXY ROUTE (Just in case bot searches directly)
+# --- SEARCH PROXY 
 # =======================================================
 @app.route('/youtube/v3/<path:endpoint>', methods=['GET'])
 def proxy_youtube(endpoint):
@@ -153,3 +152,4 @@ def logout():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
