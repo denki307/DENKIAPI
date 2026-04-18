@@ -1,40 +1,54 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Admin Panel</title>
-    <style>
-        body { background: #111; color: #fff; font-family: sans-serif; padding: 20px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #444; padding: 10px; text-align: left; }
-        th { background: #333; color: #00ffcc; }
-        .btn { padding: 5px 10px; background: #ff00ff; color: #fff; text-decoration: none; border-radius: 3px; }
-    </style>
+    <title>Admin System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body>
-    <h2>🛠️ Owner Dashboard</h2>
-    <table>
-        <tr>
-            <th>API Key</th>
-            <th>Status</th>
-            <th>Plays</th>
-            <th>UTR</th>
-            <th>Action</th>
-        </tr>
-        {% for k in keys %}
-        <tr>
-            <td style="font-family: monospace;">{{ k.api_key }}</td>
-            <td style="color: {% if k.status == 'pending' %}yellow{% elif k.status == 'active' %}#00ffcc{% else %}#aaa{% endif %};">{{ k.status.upper() }}</td>
-            <td>{{ k.play_count }}</td>
-            <td>{{ k.utr_number }}</td>
-            <td>
-                {% if k.status == 'pending' %}
-                    <a href="/approve/{{ k.api_key }}?pwd={{ pwd }}" class="btn">Approve ✅</a>
-                {% else %}
-                    Done
-                {% endif %}
-            </td>
-        </tr>
-        {% endfor %}
-    </table>
+<body class="bg-zinc-950 text-zinc-300 p-8">
+    <div class="max-w-6xl mx-auto">
+        <h1 class="text-2xl font-bold text-white mb-6"><i class="fa-solid fa-shield-halved text-cyan-500 mr-2"></i> Owner Dashboard</h1>
+        
+        <div class="bg-[#18181b] border border-zinc-800 rounded-xl overflow-hidden">
+            <table class="w-full text-left text-sm">
+                <thead class="bg-zinc-900 border-b border-zinc-800 text-zinc-400">
+                    <tr>
+                        <th class="p-4">API Key</th>
+                        <th class="p-4">Plan Name</th>
+                        <th class="p-4">Status</th>
+                        <th class="p-4">Plays</th>
+                        <th class="p-4">UTR Number</th>
+                        <th class="p-4 text-right">Action</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-zinc-800">
+                    {% for k in keys %}
+                    <tr class="hover:bg-zinc-900/50 transition">
+                        <td class="p-4 font-mono text-cyan-400">{{ k.api_key[:12] }}...</td>
+                        <td class="p-4 font-bold text-white">{{ k.plan_name }}</td>
+                        <td class="p-4">
+                            {% if k.status == 'pending' %}
+                                <span class="bg-yellow-500/20 text-yellow-400 px-2 py-1 rounded text-xs font-bold uppercase">Pending</span>
+                            {% elif k.status == 'active' %}
+                                <span class="bg-green-500/20 text-green-400 px-2 py-1 rounded text-xs font-bold uppercase">Active</span>
+                            {% else %}
+                                <span class="bg-zinc-800 text-zinc-400 px-2 py-1 rounded text-xs font-bold uppercase">{{ k.status }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="p-4">{{ k.play_count }} / {{ k.max_limit }}</td>
+                        <td class="p-4 font-mono text-zinc-500">{{ k.utr_number }}</td>
+                        <td class="p-4 text-right">
+                            {% if k.status == 'pending' %}
+                                <a href="/approve/{{ k.api_key }}/{{ k.plan_name }}?pwd={{ pwd }}" class="bg-cyan-500 hover:bg-cyan-400 text-zinc-950 font-bold px-4 py-2 rounded shadow-lg">Approve ✅</a>
+                            {% else %}
+                                <span class="text-zinc-600 font-bold">Done</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
 </body>
 </html>
