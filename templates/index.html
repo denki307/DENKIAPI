@@ -1,16 +1,19 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Denki API Platform</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-[#09090b] text-white flex items-center justify-center h-screen">
-    <div class="text-center px-6">
-        <h1 class="text-6xl md:text-8xl font-black mb-4 text-white">DENKI <span class="text-cyan-500">API</span></h1>
-        <p class="text-zinc-500 mb-10 text-lg">Infrastructure for high-performance Telegram music bots.</p>
-        <a href="/get_started" class="inline-block bg-white text-black px-12 py-5 rounded-2xl font-bold text-xl hover:bg-cyan-500 transition shadow-[0_0_30px_rgba(34,211,238,0.3)]">
-            GET STARTED <i class="fa-solid fa-arrow-right ml-2"></i>
-        </a>
+<body class="bg-[#09090b] text-zinc-300 flex items-center justify-center h-screen relative overflow-hidden">
+    <div class="absolute w-[500px] h-[500px] bg-cyan-500/10 rounded-full blur-[100px] -z-10"></div>
+    <div class="text-center px-6 z-10 w-full max-w-md">
+        <h1 class="text-6xl md:text-7xl font-black text-white mb-4">DENKI <span class="text-cyan-500">API</span></h1>
+        <p class="text-zinc-400 text-lg mb-10">Infrastructure for high-performance Telegram music bots.</p>
+        <div class="flex flex-col gap-4">
+            <a href="/login" class="bg-cyan-500 text-black px-6 py-4 rounded-2xl font-bold text-lg hover:bg-cyan-400 transition shadow-[0_0_20px_rgba(34,211,238,0.3)]">LOGIN</a>
+            <a href="/register" class="bg-zinc-900 border border-zinc-700 text-white px-6 py-4 rounded-2xl font-bold text-lg hover:bg-zinc-800 transition">CREATE ACCOUNT</a>
+        </div>
     </div>
 </body>
 </html>
