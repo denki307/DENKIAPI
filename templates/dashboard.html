@@ -1,104 +1,94 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>body{background-color:#09090b;} .glass{background:#18181b; border:1px solid #27272a;}</style>
+    <style>body{background-color:#09090b;} .glass{background:#111114; border:1px solid #27272a;}</style>
 </head>
-<body class="text-zinc-300 h-screen flex flex-col md:flex-row">
+<body class="text-zinc-300 h-screen flex flex-col md:flex-row overflow-hidden">
 
-    <div class="md:hidden flex justify-between items-center bg-zinc-950 border-b border-zinc-800 p-4">
+    <div class="md:hidden flex justify-between items-center bg-zinc-950 border-b border-zinc-800 p-4 sticky top-0 z-50">
         <div class="flex items-center gap-2">
             <div class="bg-cyan-500 text-black font-black w-8 h-8 flex items-center justify-center rounded">D</div>
-            <span class="font-bold text-white">Denki API</span>
+            <span class="font-bold text-white">Dashboard</span>
         </div>
-        <div class="flex gap-4 text-xl">
-            <a href="/billing" class="text-zinc-400 hover:text-white"><i class="fa-solid fa-wallet"></i></a>
-            <a href="/plans" class="text-zinc-400 hover:text-white"><i class="fa-solid fa-bolt"></i></a>
+        <div class="flex gap-5 text-xl">
+            <a href="/billing"><i class="fa-solid fa-wallet"></i></a>
+            <a href="/plans"><i class="fa-solid fa-bolt text-fuchsia-500"></i></a>
         </div>
     </div>
 
     <aside class="bg-zinc-950 w-64 border-r border-zinc-800 hidden md:flex flex-col shrink-0">
-        <div class="p-6 border-b border-zinc-800 flex items-center gap-3">
-            <div class="bg-cyan-500 text-zinc-950 font-black w-10 h-10 rounded flex items-center justify-center text-xl">D</div>
-            <div>
-                <h1 class="text-zinc-100 font-bold">API Platform</h1>
-            </div>
+        <div class="p-8 border-b border-zinc-800 flex items-center gap-3">
+            <div class="bg-cyan-500 text-black font-black w-10 h-10 rounded text-xl flex items-center justify-center">D</div>
+            <h1 class="text-white font-bold">Denki API</h1>
         </div>
         <nav class="flex-1 p-4 space-y-2">
-            <a href="/dashboard" class="flex items-center gap-3 px-3 py-3 bg-zinc-800 text-cyan-400 rounded-lg font-medium"><i class="fa-solid fa-border-all w-5"></i> Dashboard</a>
-            <a href="/billing" class="flex items-center gap-3 px-3 py-3 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/50 rounded-lg transition"><i class="fa-solid fa-wallet w-5"></i> Add Balance</a>
-            <a href="/plans" class="flex items-center gap-3 px-3 py-3 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/50 rounded-lg transition"><i class="fa-solid fa-cube w-5"></i> Upgrade Plan</a>
+            <a href="/dashboard" class="flex items-center gap-3 px-4 py-3 bg-zinc-900 text-cyan-400 rounded-xl font-medium"><i class="fa-solid fa-border-all"></i> Dashboard</a>
+            <a href="/billing" class="flex items-center gap-3 px-4 py-3 hover:bg-zinc-900 rounded-xl transition"><i class="fa-solid fa-wallet"></i> Billing</a>
+            <a href="/plans" class="flex items-center gap-3 px-4 py-3 hover:bg-zinc-900 rounded-xl transition"><i class="fa-solid fa-cube"></i> Upgrade</a>
         </nav>
-        <div class="p-4 border-t border-zinc-800 flex justify-between items-center">
-            <span class="font-bold text-white"><i class="fa-solid fa-user-circle text-cyan-500 mr-1"></i> {{ user.username }}</span>
+        <div class="p-6 border-t border-zinc-800 flex justify-between items-center">
+            <span class="text-sm font-bold text-white"><i class="fa-solid fa-user-circle mr-2 text-cyan-500"></i> {{ user.username }}</span>
             <a href="/logout" class="text-zinc-600 hover:text-red-500"><i class="fa-solid fa-power-off"></i></a>
         </div>
     </aside>
 
-    <main class="flex-1 overflow-y-auto p-4 md:p-8">
+    <main class="flex-1 overflow-y-auto p-4 md:p-10 space-y-6">
         <div class="max-w-4xl mx-auto space-y-6">
-            <h1 class="text-2xl font-bold text-white mb-6">Welcome, {{ user.username }}!</h1>
-
+            
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="glass rounded-2xl p-6 relative overflow-hidden">
-                    <p class="text-zinc-500 text-xs font-bold uppercase tracking-wider mb-2">Wallet Balance</p>
-                    <h2 class="text-5xl font-black text-white mb-6">₹{{ user.balance }}</h2>
-                    <a href="/billing" class="inline-block bg-zinc-800 hover:bg-zinc-700 text-cyan-400 font-bold px-5 py-3 rounded-lg transition border border-zinc-700">
-                        <i class="fa-solid fa-plus mr-1"></i> Add Funds
-                    </a>
+                <div class="glass rounded-3xl p-8 relative overflow-hidden">
+                    <p class="text-zinc-500 text-xs font-bold uppercase tracking-widest mb-2">Wallet Balance</p>
+                    <h2 class="text-6xl font-black text-white mb-6">₹{{ user.balance }}</h2>
+                    <a href="/billing" class="bg-cyan-500 text-black font-bold px-6 py-3 rounded-xl hover:bg-cyan-400 transition">Add Balance</a>
                 </div>
 
-                <div class="glass rounded-2xl p-6">
+                <div class="glass rounded-3xl p-8">
                     <div class="flex justify-between items-start mb-4">
-                        <p class="text-zinc-500 text-xs font-bold uppercase tracking-wider">Active Plan</p>
-                        <span class="bg-green-500/20 text-green-400 text-[10px] px-2 py-1 rounded-full font-bold uppercase">Live</span>
+                        <span class="text-zinc-500 text-xs font-bold uppercase tracking-widest">Active Plan</span>
+                        <span class="bg-cyan-500/20 text-cyan-400 text-[10px] px-2 py-1 rounded-full font-bold uppercase">Live Tracking</span>
                     </div>
                     <h2 class="text-3xl font-black text-white mb-1">{{ user.plan_name }}</h2>
-                    <p class="text-xs text-zinc-400 mb-6">Expires: {{ user.expiry_date }}</p>
+                    <p class="text-xs text-fuchsia-500 font-bold mb-6">{{ days_left }}</p>
                     
-                    <div class="flex justify-between text-xs text-zinc-500 mb-2">
-                        <span>Daily Usage</span><span>{{ user.play_count }} / {{ user.max_limit }}</span>
+                    <div class="flex justify-between text-xs mb-2">
+                        <span>Today's Usage</span><span>{{ user.play_count }} / {{ user.max_limit }}</span>
                     </div>
-                    <div class="w-full bg-zinc-800 rounded-full h-1.5">
-                        <div class="bg-cyan-500 h-1.5 rounded-full shadow-[0_0_10px_rgba(34,211,238,0.5)]" style="width: {{ (user.play_count / user.max_limit * 100) if user.max_limit > 0 else 0 }}%"></div>
+                    <div class="w-full bg-zinc-800 rounded-full h-1.5 overflow-hidden">
+                        <div class="bg-cyan-500 h-full shadow-[0_0_15px_rgba(34,211,238,0.5)]" style="width: {{ (user.play_count / user.max_limit * 100) if user.max_limit > 0 else 0 }}%"></div>
                     </div>
                 </div>
             </div>
 
-            <div class="glass rounded-2xl p-6">
-                <h3 class="font-bold text-white mb-4"><i class="fa-solid fa-key text-cyan-500 mr-2"></i> Your API Key</h3>
-                <div class="bg-zinc-950 border border-zinc-800 rounded-xl p-2 flex items-center justify-between">
-                    <input type="password" id="key" value="{{ user.api_key }}" class="bg-transparent font-mono text-cyan-400 outline-none w-full px-4 text-lg" readonly>
+            <div class="glass rounded-3xl p-8">
+                <h3 class="font-bold text-white mb-4"><i class="fa-solid fa-key text-cyan-500 mr-2"></i> Your License Key</h3>
+                <div class="bg-black/50 border border-zinc-800 rounded-2xl p-2 flex items-center justify-between">
+                    <input type="password" id="key" value="{{ user.api_key }}" class="bg-transparent font-mono text-cyan-400 outline-none w-full px-4 text-xl" readonly>
                     <div class="flex gap-2">
-                        <button onclick="toggleKey()" class="p-3 text-zinc-500 hover:text-white transition"><i id="eye-icon" class="fa-solid fa-eye"></i></button>
-                        <button onclick="copyKey()" id="copy-btn" class="bg-zinc-800 hover:bg-zinc-700 text-white p-3 rounded-lg transition"><i class="fa-regular fa-copy"></i></button>
+                        <button onclick="toggleKey()" class="p-4 text-zinc-500"><i id="eye-icon" class="fa-solid fa-eye"></i></button>
+                        <button onclick="copyKey()" id="copy-btn" class="bg-zinc-800 p-4 rounded-xl text-white"><i class="fa-regular fa-copy"></i></button>
                     </div>
                 </div>
             </div>
+
         </div>
     </main>
 
     <script>
         function toggleKey() {
-            const field = document.getElementById('key');
-            const icon = document.getElementById('eye-icon');
-            if(field.type === "password") { field.type = "text"; icon.className = "fa-solid fa-eye-slash"; } 
-            else { field.type = "password"; icon.className = "fa-solid fa-eye"; }
+            const f = document.getElementById('key'); const i = document.getElementById('eye-icon');
+            if(f.type==="password"){f.type="text"; i.className="fa-solid fa-eye-slash";}
+            else{f.type="password"; i.className="fa-solid fa-eye";}
         }
         function copyKey() {
-            const field = document.getElementById("key");
-            const btn = document.getElementById("copy-btn");
-            field.type = 'text';
-            navigator.clipboard.writeText(field.value).then(() => {
-                btn.innerHTML = '<i class="fa-solid fa-check text-cyan-400"></i>';
-                field.type = 'password';
-                setTimeout(() => { btn.innerHTML = '<i class="fa-regular fa-copy"></i>'; }, 2000);
+            const f = document.getElementById('key'); const b = document.getElementById('copy-btn');
+            f.type='text'; navigator.clipboard.writeText(f.value).then(()=>{
+                b.innerHTML = '<i class="fa-solid fa-check text-cyan-500"></i>';
+                f.type='password'; setTimeout(()=>b.innerHTML='<i class="fa-regular fa-copy"></i>',2000);
             });
         }
     </script>
 </body>
 </html>
-
