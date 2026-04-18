@@ -1,24 +1,24 @@
 <!DOCTYPE html>
 <html>
 <head><script src="https://cdn.tailwindcss.com"></script></head>
-<body class="bg-black text-zinc-300 p-10 font-sans">
+<body class="bg-black text-zinc-300 p-8 font-sans">
     <div class="max-w-4xl mx-auto">
-        <h1 class="text-4xl font-black text-cyan-500 mb-10">ADMIN CONTROL</h1>
+        <h1 class="text-3xl font-black text-cyan-500 mb-8">ADMIN PANEL</h1>
         <div class="space-y-4">
             {% for p in pending %}
-            <div class="bg-zinc-900 border border-zinc-800 p-8 rounded-3xl flex justify-between items-center">
-                <div>
-                    <p class="text-xs text-zinc-500 font-bold mb-1">USER: {{ p.username }}</p>
+            <div class="bg-zinc-900 border border-zinc-800 p-6 rounded-3xl flex flex-col md:flex-row justify-between items-center">
+                <div class="mb-4 md:mb-0 text-center md:text-left">
+                    <p class="text-xs text-zinc-500 font-bold mb-1">{{ p.email }}</p>
                     <h2 class="text-4xl font-black text-white mb-2">₹{{ p.amount }}</h2>
-                    <p class="font-mono text-cyan-500">UTR: {{ p.utr }}</p>
+                    <p class="font-mono text-cyan-500 text-sm">UTR: {{ p.utr }}</p>
                 </div>
                 <div class="flex gap-4">
-                    <a href="/admin_action/{{ p.id }}/approve?pwd={{ pwd }}" class="bg-green-600 px-8 py-3 rounded-2xl text-white font-bold">Approve</a>
-                    <a href="/admin_action/{{ p.id }}/reject?pwd={{ pwd }}" class="bg-red-600 px-8 py-3 rounded-2xl text-white font-bold">Reject</a>
+                    <a href="/admin_action/{{ p.id }}/approve?pwd={{ pwd }}" class="bg-green-600 px-6 py-3 rounded-xl text-white font-bold">Approve</a>
+                    <a href="/admin_action/{{ p.id }}/reject?pwd={{ pwd }}" class="bg-red-600 px-6 py-3 rounded-xl text-white font-bold">Reject</a>
                 </div>
             </div>
             {% else %}
-            <p class="text-zinc-500 text-center py-20">No pending requests.</p>
+            <p class="text-zinc-500 text-center py-20">No pending UTR requests.</p>
             {% endfor %}
         </div>
     </div>
