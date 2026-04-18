@@ -8,7 +8,7 @@ app.secret_key = "denki_mega_secure_secret_fixed_2026"
 
 ADMIN_PASSWORD = "boss"
 UPI_ID = "denkielangokey@fam"
-OFFICIAL_YT_KEY = os.getenv("YT_API_KEY", "AIzaSy_YOUR_ORIGINAL_KEY")
+OFFICIAL_YT_KEY = os.getenv("YT_API_KEY", "AIzaSyDV4lSw3PHOCdl20dDY_e7bkp3xXXc_FD4")
 
 PLANS = {
     "lite": {"name": "Lite", "price": 32, "limit": 1500},
