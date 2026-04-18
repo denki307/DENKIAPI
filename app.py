@@ -6,13 +6,13 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from bson.objectid import ObjectId
 
 app = Flask(__name__)
-# Permanent Secret Key to keep users logged in
+# Permanent Secret Key so sessions don't expire
 app.secret_key = "denki_ultra_secure_permanent_key_2026"
 
 # --- CONFIGURATION ---
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "boss")
 UPI_ID = "denkielangokey@fam"
-# Your Official YouTube API Key
+# Your Official YouTube API Key from Google Cloud
 OFFICIAL_YT_KEY = os.getenv("YT_API_KEY", "AIzaSyDV4lSw3PHOCdl20dDY_e7bkp3xXXc_FD4")
 
 # MongoDB Connection
@@ -31,19 +31,19 @@ PLANS = {
 
 # --- HELPER FUNCTIONS ---
 def ist_now():
-    # UTC to IST (GMT+5:30)
+    # Convert UTC to Indian Standard Time
     return datetime.utcnow() + timedelta(hours=5, minutes=30)
 
 def sync_user(user):
     today = ist_now().strftime('%Y-%m-%d')
     updates = {}
     
-    # Midnight Reset Logic
+    # Midnight Reset: Play count will go back to 0 daily
     if user.get('last_reset') != today:
         updates['play_count'] = 0
         updates['last_reset'] = today
 
-    # 30-Day Expiry Check Logic
+    # 30-Day Expiry: Move to Free plan if expired
     if user['plan_name'] != 'Free' and user['expiry_date'] != 'Lifetime':
         expiry_dt = datetime.strptime(user['expiry_date'], '%d %b %Y')
         if ist_now() > expiry_dt:
@@ -75,7 +75,7 @@ def register():
 
         if not email or not pw: return render_template('register.html', error="All fields required!")
         if pw != cpw: return render_template('register.html', error="Passwords do not match!")
-        if users_col.find_one({'email': email}): return render_template('register.html', error="Email exists!")
+        if users_col.find_one({'email': email}): return render_template('register.html', error="Email already exists!")
 
         uname = "Denki_" + ''.join(random.choices(string.digits, k=5))
         key = f"DENKI-{secrets.token_hex(6).upper()}"
@@ -107,7 +107,7 @@ def logout():
     session.clear()
     return redirect(url_for('index'))
 
-# --- DASHBOARD & API STATS ---
+# --- DASHBOARD & LIVE STATS ---
 @app.route('/dashboard')
 def dashboard():
     if 'email' not in session: return redirect(url_for('login'))
@@ -119,8 +119,11 @@ def dashboard():
     
     days_left = "∞"
     if user['expiry_date'] != 'Lifetime':
-        delta = datetime.strptime(user['expiry_date'], '%d %b %Y') - ist_now()
-        days_left = f"{max(0, delta.days)} days left"
+        try:
+            delta = datetime.strptime(user['expiry_date'], '%d %b %Y') - ist_now()
+            days_left = f"{max(0, delta.days)} days left"
+        except: days_left = "Expired"
+        
     return render_template('dashboard.html', user=user, days_left=days_left)
 
 @app.route('/api/stats')
@@ -133,40 +136,44 @@ def get_stats():
         "balance": user['balance']
     })
 
-# --- PROXY YOUTUBE API (FOR BOT TRACKING) ---
+# --- PROXY YOUTUBE API (THE CONNECTOR) ---
 @app.route('/youtube/v3/search', methods=['GET'])
 def proxy_youtube():
-    # The bot sends params like ?part=snippet&q=song&key=DENKI-KEY
+    # Bot calls: unga-app.com/youtube/v3/search?q=SONG&key=DENKI-KEY
     bot_sent_key = request.args.get('key')
-    query = request.args.get('q')
     
     if not bot_sent_key:
-        return jsonify({"error": "No API Key provided"}), 400
+        return jsonify({"error": {"message": "API Key Missing"}}), 400
 
     user = users_col.find_one({'api_key': bot_sent_key})
     if not user:
-        return jsonify({"error": "Invalid Denki API Key"}), 403
+        return jsonify({"error": {"message": "Invalid Denki API Key"}}), 403
 
     user = sync_user(user)
     if user['play_count'] >= user['max_limit']:
-        return jsonify({"error": "Limit Reached. Please Upgrade."}), 403
+        return jsonify({"error": {"message": "Daily Limit Reached. Upgrade Plan."}}), 403
 
-    # Update Play Count in Database
+    # Success: Increment usage in DB
     users_col.update_one({'api_key': bot_sent_key}, {'$inc': {'play_count': 1}})
 
-    # Forward request to Official Google API
+    # Forward the request to Google with your Official Key
     yt_url = "https://www.googleapis.com/youtube/v3/search"
-    # Copy all original params and replace key with official one
     params = dict(request.args)
     params['key'] = OFFICIAL_YT_KEY
     
+    # Ensure mandatory fields for bots are present
+    if 'part' not in params: params['part'] = 'snippet'
+    if 'type' not in params: params['type'] = 'video'
+    
     try:
-        r = requests.get(yt_url, params=params, timeout=10)
+        # Mocking a real browser headers to avoid blocks
+        headers = {'User-Agent': 'Mozilla/5.0'}
+        r = requests.get(yt_url, params=params, headers=headers, timeout=15)
         return jsonify(r.json())
     except Exception as e:
         return jsonify({"error": "Internal Proxy Error", "details": str(e)}), 500
 
-# --- BILLING & PLANS ---
+# --- BILLING & PAYMENTS ---
 @app.route('/billing', methods=['GET', 'POST'])
 def billing():
     if 'email' not in session: return redirect(url_for('login'))
@@ -174,7 +181,7 @@ def billing():
     if request.method == 'POST':
         utr = request.form.get('utr', '').strip()
         amt = request.form.get('amount', '0')
-        if utr and amt.isdigit():
+        if utr and amt.isdigit() and int(amt) > 0:
             tx_col.insert_one({
                 "email": user['email'], "username": user['username'], "utr": utr, 
                 "amount": int(amt), "status": "pending", "date": ist_now().strftime('%d %b, %H:%M')
@@ -213,17 +220,18 @@ def admin():
 @app.route('/admin_action/<tid>/<action>')
 def admin_action(tid, action):
     if request.args.get('pwd') != ADMIN_PASSWORD: return "Denied", 403
-    tx = tx_col.find_one({'_id': ObjectId(tid)})
-    if tx and tx['status'] == 'pending':
-        if action == 'approve':
-            users_col.update_one({'email': tx['email']}, {'$inc': {'balance': tx['amount']}})
-            tx_col.update_one({'_id': ObjectId(tid)}, {'$set': {'status': 'approved'}})
-        else:
-            tx_col.update_one({'_id': ObjectId(tid)}, {'$set': {'status': 'rejected'}})
+    try:
+        tx = tx_col.find_one({'_id': ObjectId(tid)})
+        if tx and tx['status'] == 'pending':
+            if action == 'approve':
+                users_col.update_one({'email': tx['email']}, {'$inc': {'balance': tx['amount']}})
+                tx_col.update_one({'_id': ObjectId(tid)}, {'$set': {'status': 'approved'}})
+            else:
+                tx_col.update_one({'_id': ObjectId(tid)}, {'$set': {'status': 'rejected'}})
+    except: pass
     return redirect(url_for('admin', pwd=ADMIN_PASSWORD))
 
 if __name__ == '__main__':
-    # Production ready port handling
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
 
