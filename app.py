@@ -6,12 +6,13 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from bson.objectid import ObjectId
 
 app = Flask(__name__)
-# Permanent Secret Key so sessions don't drop
+# Permanent Secret Key to keep users logged in
 app.secret_key = "denki_ultra_secure_permanent_key_2026"
 
 # --- CONFIGURATION ---
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "boss")
 UPI_ID = "denkielangokey@fam"
+# Your Official YouTube API Key
 OFFICIAL_YT_KEY = os.getenv("YT_API_KEY", "AIzaSyDV4lSw3PHOCdl20dDY_e7bkp3xXXc_FD4")
 
 # MongoDB Connection
@@ -30,18 +31,19 @@ PLANS = {
 
 # --- HELPER FUNCTIONS ---
 def ist_now():
+    # UTC to IST (GMT+5:30)
     return datetime.utcnow() + timedelta(hours=5, minutes=30)
 
 def sync_user(user):
     today = ist_now().strftime('%Y-%m-%d')
     updates = {}
     
-    # Daily Limit Reset at Midnight IST
+    # Midnight Reset Logic
     if user.get('last_reset') != today:
         updates['play_count'] = 0
         updates['last_reset'] = today
 
-    # 30-Day Expiry Check
+    # 30-Day Expiry Check Logic
     if user['plan_name'] != 'Free' and user['expiry_date'] != 'Lifetime':
         expiry_dt = datetime.strptime(user['expiry_date'], '%d %b %Y')
         if ist_now() > expiry_dt:
@@ -67,10 +69,11 @@ def index():
 def register():
     if 'email' in session: return redirect(url_for('dashboard'))
     if request.method == 'POST':
-        email = request.form.get('email').lower().strip()
+        email = request.form.get('email', '').lower().strip()
         pw = request.form.get('password')
         cpw = request.form.get('confirm_password')
 
+        if not email or not pw: return render_template('register.html', error="All fields required!")
         if pw != cpw: return render_template('register.html', error="Passwords do not match!")
         if users_col.find_one({'email': email}): return render_template('register.html', error="Email exists!")
 
@@ -90,7 +93,7 @@ def register():
 def login():
     if 'email' in session: return redirect(url_for('dashboard'))
     if request.method == 'POST':
-        email = request.form.get('email').lower().strip()
+        email = request.form.get('email', '').lower().strip()
         pw = request.form.get('password')
         user = users_col.find_one({'email': email})
         if user and check_password_hash(user['password'], pw):
@@ -104,7 +107,7 @@ def logout():
     session.clear()
     return redirect(url_for('index'))
 
-# --- CORE DASHBOARD ROUTES ---
+# --- DASHBOARD & API STATS ---
 @app.route('/dashboard')
 def dashboard():
     if 'email' not in session: return redirect(url_for('login'))
@@ -112,14 +115,12 @@ def dashboard():
     if not user:
         session.clear()
         return redirect(url_for('login'))
-        
     user = sync_user(user)
     
     days_left = "∞"
     if user['expiry_date'] != 'Lifetime':
         delta = datetime.strptime(user['expiry_date'], '%d %b %Y') - ist_now()
         days_left = f"{max(0, delta.days)} days left"
-        
     return render_template('dashboard.html', user=user, days_left=days_left)
 
 @app.route('/api/stats')
@@ -132,10 +133,10 @@ def get_stats():
         "balance": user['balance']
     })
 
-# --- PROXY YOUTUBE API (THE MAGIC) ---
-# Your bot calls this instead of Google
-@app.route('/youtube/v3/search')
+# --- PROXY YOUTUBE API (FOR BOT TRACKING) ---
+@app.route('/youtube/v3/search', methods=['GET'])
 def proxy_youtube():
+    # The bot sends params like ?part=snippet&q=song&key=DENKI-KEY
     bot_sent_key = request.args.get('key')
     query = request.args.get('q')
     
@@ -148,26 +149,22 @@ def proxy_youtube():
 
     user = sync_user(user)
     if user['play_count'] >= user['max_limit']:
-        return jsonify({"error": "Limit Reached. Upgrade Plan."}), 403
+        return jsonify({"error": "Limit Reached. Please Upgrade."}), 403
 
-    # Success! Increment play count in DB
+    # Update Play Count in Database
     users_col.update_one({'api_key': bot_sent_key}, {'$inc': {'play_count': 1}})
 
-    # Fetch real data from YouTube
-    yt_url = f"https://www.googleapis.com/youtube/v3/search"
-    params = {
-        "part": "snippet",
-        "q": query,
-        "maxResults": 1,
-        "key": OFFICIAL_YT_KEY,
-        "type": "video"
-    }
+    # Forward request to Official Google API
+    yt_url = "https://www.googleapis.com/youtube/v3/search"
+    # Copy all original params and replace key with official one
+    params = dict(request.args)
+    params['key'] = OFFICIAL_YT_KEY
     
     try:
-        yt_resp = requests.get(yt_url, params=params).json()
-        return jsonify(yt_resp)
-    except:
-        return jsonify({"error": "YouTube API unreachable"}), 500
+        r = requests.get(yt_url, params=params, timeout=10)
+        return jsonify(r.json())
+    except Exception as e:
+        return jsonify({"error": "Internal Proxy Error", "details": str(e)}), 500
 
 # --- BILLING & PLANS ---
 @app.route('/billing', methods=['GET', 'POST'])
@@ -175,11 +172,13 @@ def billing():
     if 'email' not in session: return redirect(url_for('login'))
     user = users_col.find_one({'email': session['email']})
     if request.method == 'POST':
-        utr, amt = request.form.get('utr').strip(), int(request.form.get('amount'))
-        tx_col.insert_one({
-            "email": user['email'], "username": user['username'], "utr": utr, 
-            "amount": amt, "status": "pending", "date": ist_now().strftime('%d %b, %H:%M')
-        })
+        utr = request.form.get('utr', '').strip()
+        amt = request.form.get('amount', '0')
+        if utr and amt.isdigit():
+            tx_col.insert_one({
+                "email": user['email'], "username": user['username'], "utr": utr, 
+                "amount": int(amt), "status": "pending", "date": ist_now().strftime('%d %b, %H:%M')
+            })
     txs = list(tx_col.find({'email': user['email']}).sort('_id', -1))
     qr_url = f"https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=upi://pay?pa={UPI_ID}%26pn=DenkiAPI"
     return render_template('billing.html', user=user, txs=txs, qr_url=qr_url)
@@ -207,13 +206,13 @@ def buy_plan(plan_id):
 # --- ADMIN PANEL ---
 @app.route('/admin')
 def admin():
-    if request.args.get('pwd') != ADMIN_PASSWORD: return "Denied"
+    if request.args.get('pwd') != ADMIN_PASSWORD: return "Access Denied", 403
     pending = list(tx_col.find({'status': 'pending'}).sort('_id', -1))
     return render_template('admin.html', pending=pending, pwd=ADMIN_PASSWORD)
 
 @app.route('/admin_action/<tid>/<action>')
 def admin_action(tid, action):
-    if request.args.get('pwd') != ADMIN_PASSWORD: return "Denied"
+    if request.args.get('pwd') != ADMIN_PASSWORD: return "Denied", 403
     tx = tx_col.find_one({'_id': ObjectId(tid)})
     if tx and tx['status'] == 'pending':
         if action == 'approve':
@@ -224,5 +223,7 @@ def admin_action(tid, action):
     return redirect(url_for('admin', pwd=ADMIN_PASSWORD))
 
 if __name__ == '__main__':
+    # Production ready port handling
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
+
