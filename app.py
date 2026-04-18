@@ -12,7 +12,7 @@ app.secret_key = "denki_ultra_secure_permanent_key_2026"
 # Configuration
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "boss")
 UPI_ID = "denkielangokey@fam"
-OFFICIAL_YT_KEY = os.getenv("YT_API_KEY", "AIzaSy_PUT_YOUR_KEY_HERE_IF_NOT_IN_HEROKU")
+OFFICIAL_YT_KEY = os.getenv("YT_API_KEY", "AIzaSyDV4lSw3PHOCdl20dDY_e7bkp3xXXc_FD4")
 
 # MongoDB Connection
 MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/") 
